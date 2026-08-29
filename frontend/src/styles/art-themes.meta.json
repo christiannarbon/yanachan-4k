@@ -1,0 +1,111 @@
+[
+  {
+    "id": "yanami-calorie-meter",
+    "name": "Yanami Anna",
+    "subtitle": "Calorie Meter",
+    "kind": "ode",
+    "fonts": [
+      "Quantico",
+      "Noto Sans JP"
+    ],
+    "swatch": "#070a7d"
+  },
+  {
+    "id": "studio-paper",
+    "name": "Studio Paper",
+    "subtitle": "Teal & burnt orange",
+    "kind": "house",
+    "fonts": [
+      "Inter"
+    ],
+    "swatch": "#0f766e"
+  },
+  {
+    "id": "cezanne-mont-sainte-victoire",
+    "name": "Cézanne",
+    "subtitle": "Mont Sainte-Victoire",
+    "kind": "painting",
+    "fonts": [
+      "Bitter",
+      "Nunito Sans"
+    ],
+    "swatch": "#345689"
+  },
+  {
+    "id": "hokusai-great-wave",
+    "name": "Hokusai",
+    "subtitle": "The Great Wave",
+    "kind": "painting",
+    "fonts": [
+      "Noto Serif JP",
+      "Inter"
+    ],
+    "swatch": "#204985"
+  },
+  {
+    "id": "hopper-nighthawks",
+    "name": "Hopper",
+    "subtitle": "Nighthawks",
+    "kind": "painting",
+    "fonts": [
+      "DM Sans",
+      "IBM Plex Sans"
+    ],
+    "swatch": "#236565"
+  },
+  {
+    "id": "matisse-red-studio",
+    "name": "Matisse",
+    "subtitle": "The Red Studio",
+    "kind": "painting",
+    "fonts": [
+      "Space Grotesk",
+      "DM Sans"
+    ],
+    "swatch": "#86281a"
+  },
+  {
+    "id": "monet-water-lilies",
+    "name": "Monet",
+    "subtitle": "Water Lilies",
+    "kind": "painting",
+    "fonts": [
+      "Lora",
+      "Source Serif 4"
+    ],
+    "swatch": "#364d90"
+  },
+  {
+    "id": "vangogh-green-wheat",
+    "name": "Van Gogh",
+    "subtitle": "Green Wheat Fields",
+    "kind": "painting",
+    "fonts": [
+      "Lora",
+      "Source Sans 3"
+    ],
+    "swatch": "#2b7238"
+  },
+  {
+    "id": "vangogh-irises",
+    "name": "Van Gogh",
+    "subtitle": "Irises",
+    "kind": "painting",
+    "fonts": [
+      "Archivo Black",
+      "Work Sans"
+    ],
+    "swatch": "#284684"
+  },
+  {
+    "id": "wang-ximeng-rivers-mountains",
+    "name": "Wang Ximeng",
+    "subtitle": "A Thousand Li of Rivers and Mountains",
+    "kind": "painting",
+    "fonts": [
+      "Noto Serif Display",
+      "Noto Sans"
+    ],
+    "swatch": "#235c51"
+  }
+]
