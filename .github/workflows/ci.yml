@@ -88,3 +88,86 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  build:
+    name: Build and smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend packages
+        working-directory: frontend
+        run: npm ci
+
+      # The same target a developer runs: build the bundle, stage it into
+      # internal/webui/dist, compile the binary with it embedded.
+      - name: make build
+        run: make build
+
+      # The two halves compile separately in the jobs above. This is the only
+      # place the shipped artefact -- one binary with the frontend inside it --
+      # is proven to exist and answer.
+      - name: Smoke test the binary
+        run: |
+          set -euo pipefail
+          state=$(mktemp -d)
+          GHDASH_ADDR=127.0.0.1:19080 GHDASH_STATE_DIR="$state" ./bin/yana-chan-4k &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:19080/api/health >/dev/null && break
+            sleep 1
+          done
+
+          curl -sf http://127.0.0.1:19080/api/health | grep -q '"status":"ok"'
+          echo "  health answers"
+
+          # A binary built without the bundle staged still compiles -- only
+          # .gitkeep is tracked in the embed directory -- and answers this
+          # with "frontend bundle is missing". So this is the embed check.
+          curl -sf http://127.0.0.1:19080/ | grep -q 'id="app"'
+          echo "  frontend is embedded"
+
+          # An unmatched API path must answer JSON, not index.html with a 200
+          # that the frontend would then try to JSON.parse.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19080/api/nope)
+          test "$code" = 404
+          echo "  unmatched api route answers 404"
+
+          # The dashboard endpoints need a session and must say so rather than
+          # rendering an empty board.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19080/api/board)
+          test "$code" = 401
+          echo "  board requires a session"
+
+          # The DNS-rebinding guard: an unrecognised Host is refused outright.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Host: dns-rebind.example' http://127.0.0.1:19080/api/auth/status)
+          test "$code" = 403
+          echo "  host allowlist refuses an unknown name"
+
+          # ...and health is exempt from it, which is what lets a Kubernetes
+          # probe address the pod by IP.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Host: dns-rebind.example' http://127.0.0.1:19080/api/health)
+          test "$code" = 200
+          echo "  health is exempt from the allowlist"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yana-chan-4k-linux-amd64
+          path: bin/yana-chan-4k
+          retention-days: 7
+          if-no-files-found: error
