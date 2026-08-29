@@ -40,6 +40,10 @@ const en = {
     } as Intl.DateTimeFormatOptions,
     /** Between actor handles in a list. */
     listSeparator: ', ',
+    /** The activity chart's axis ticks: "Mon". */
+    weekdayFormat: { weekday: 'short' } as Intl.DateTimeFormatOptions,
+    /** A calendar day on its own: "24 Aug", for the week's range and the chart. */
+    dayFormat: { day: 'numeric', month: 'short' } as Intl.DateTimeFormatOptions,
   },
 
   /** Labels for the activity window, keyed by the backend's window.kind. */
@@ -50,6 +54,7 @@ const en = {
 
   /** Titles for the built-in tabs. Team and org tabs are named by their ref. */
   sections: {
+    dashboard: 'Your week',
     mine: 'Your open PRs',
     review: 'Review requested from you',
     settings: 'Settings',
@@ -72,6 +77,75 @@ const en = {
     emptyScope: 'This tab covers {ref}.',
     footer: (generated: string, limit: number) =>
       `Generated ${generated} · ${limit} pull requests per query`,
+  },
+
+  /*
+   * The landing dashboard: the viewer's own week.
+   *
+   * The tone here is deliberate. This tab exists to be encouraging, so the
+   * copy states what happened and never what did not -- a week with nothing
+   * merged gets `quietBody`, not a row of zeroes with an apology attached.
+   */
+  dashboard: {
+    /** Sub-heading under the tab title: the days the figures cover. */
+    range: (from: string, to: string) => `${from} – ${to}`,
+
+    /* The hero figure. 4K is a calorie count -- see the repository's name. */
+    kcalUnit: 'kcal',
+    kcalCaption: 'burned this week',
+    /** The weights, as a tooltip on the hero, so the number is never magic. */
+    kcalHow:
+      'Opened 200 · merged 400 · closed 100 · review written 150 · approval given 50',
+
+    /* The four headline tiles, in order. */
+    opened: 'Opened',
+    merged: 'Merged',
+    closed: 'Closed',
+    reviewed: 'Reviewed',
+    openedNote: 'pull requests you opened',
+    mergedNote: 'shipped',
+    closedNote: 'closed without merging',
+    reviewedNote: "branches you reviewed",
+
+    /* The activity chart. */
+    chartTitle: 'Day by day',
+    chartNote: 'Opened, merged and reviewed, on one shared scale.',
+    chartEmpty: 'Nothing to draw yet.',
+    /** Screen-reader caption for the table behind the chart. */
+    chartTable: 'Activity for each day of the window.',
+    columnDay: 'Day',
+
+    /* The line of secondary figures under the chart. */
+    reviewsWritten: (n: number) => `${n} review${n === 1 ? '' : 's'} written`,
+    approvalsGiven: (n: number) => `${n} approval${n === 1 ? '' : 's'} given`,
+    reposTouched: (n: number) => `${n} repositor${n === 1 ? 'y' : 'ies'}`,
+    linesMerged: (added: string, removed: string) => `+${added} / −${removed} lines merged`,
+    filesChanged: (n: number) => `${n} file${n === 1 ? '' : 's'} changed`,
+    activeDays: (active: number, total: number) => `active on ${active} of ${total} days`,
+    streak: (n: number) => `${n}-day streak`,
+
+    /* The superlatives. Each row is dropped when the week had none. */
+    highlightsTitle: 'Worth noting',
+    fastestMerge: 'Fastest merge',
+    biggestMerge: 'Biggest merge',
+    busiestRepo: 'Busiest repository',
+    busiestDay: 'Busiest day',
+    /** Open-to-merge, so it is a length of time, not a time ago. */
+    duration: (minutes: number) => {
+      // A branch opened and merged inside the same minute is a real thing --
+      // a one-line fix, a revert -- and "0 min" reads as a missing value.
+      if (minutes < 1) return 'under a minute'
+      if (minutes < 60) return `${minutes} min`
+      if (minutes < 60 * 24) return `${Math.round(minutes / 60)} hours`
+      return `${Math.round(minutes / (60 * 24))} days`
+    },
+    lineCount: (lines: string) => `${lines} lines`,
+    prCount: (n: number) => `${n} pull request${n === 1 ? '' : 's'}`,
+
+    /* A week with nothing in it. */
+    quietTitle: 'A quiet week.',
+    quietBody:
+      'Nothing opened, merged or reviewed in this window. The other tabs still know what is waiting for you.',
   },
 
   pr: {

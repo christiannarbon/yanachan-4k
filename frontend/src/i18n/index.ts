@@ -13,7 +13,7 @@
 
 import { computed, ref, watch } from 'vue'
 
-import { actorList, ago, stamp } from '../lib/time'
+import { actorList, ago, day, dayOf, num, stamp, weekday } from '../lib/time'
 import type { Board, Section } from '../lib/types'
 import en, { type Messages } from './en'
 import ja from './ja'
@@ -106,6 +106,14 @@ export function useI18n() {
     stamp: (iso: string | null | undefined) => stamp(iso, t.value.time),
     /** "@ada, @grace, +2", joined the way the language punctuates a list. */
     actors: (logins: string[]) => actorList(logins, t.value.time.listSeparator),
+    /** A chart axis tick from a YYYY-MM-DD day: "Mon" / "月". */
+    weekday: (date: string | null | undefined) => weekday(date, t.value.time),
+    /** A YYYY-MM-DD day written out: "24 Aug" / "8月24日". */
+    day: (date: string | null | undefined) => day(date, t.value.time),
+    /** The same, from a full timestamp. */
+    dayOf: (iso: string | null | undefined) => dayOf(iso, t.value.time),
+    /** A figure with digit grouping: "1,204". */
+    num: (n: number) => num(n, t.value.time),
 
     /**
      * A tab's heading. The built-in tabs are translated; a team or org tab is

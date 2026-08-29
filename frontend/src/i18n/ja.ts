@@ -37,6 +37,10 @@ const ja: Messages = {
       minute: '2-digit',
     },
     listSeparator: '、',
+    /** ja-JP renders this as "月"…"日". */
+    weekdayFormat: { weekday: 'short' },
+    /** ja-JP renders this as "8月24日". */
+    dayFormat: { month: 'long', day: 'numeric' },
   },
 
   window: {
@@ -45,6 +49,7 @@ const ja: Messages = {
   },
 
   sections: {
+    dashboard: '今週の成果',
     mine: '自分のオープン PR',
     review: 'レビュー依頼を受けた PR',
     settings: '設定',
@@ -65,6 +70,55 @@ const ja: Messages = {
     emptyScope: 'このタブの対象は {ref} です。',
     footer: (generated: string, limit: number) =>
       `生成: ${generated} · 1 クエリあたり ${limit} 件取得`,
+  },
+
+  dashboard: {
+    range: (from: string, to: string) => `${from} 〜 ${to}`,
+
+    kcalUnit: 'kcal',
+    kcalCaption: '今週の消費カロリー',
+    kcalHow: '作成 200 · マージ 400 · クローズ 100 · レビュー 150 · 承認 50',
+
+    opened: '作成',
+    merged: 'マージ',
+    closed: 'クローズ',
+    reviewed: 'レビュー',
+    openedNote: '自分が作成した PR',
+    mergedNote: 'マージまで到達',
+    closedNote: 'マージせずクローズ',
+    reviewedNote: 'レビューした PR',
+
+    chartTitle: '日ごとの動き',
+    chartNote: '作成・マージ・レビューを共通の目盛りで並べています。',
+    chartEmpty: 'まだ描くものがありません。',
+    chartTable: '期間内の各日の活動。',
+    columnDay: '日付',
+
+    reviewsWritten: (n: number) => `レビュー ${n} 件`,
+    approvalsGiven: (n: number) => `承認 ${n} 件`,
+    reposTouched: (n: number) => `リポジトリ ${n} 件`,
+    linesMerged: (added: string, removed: string) => `マージした差分 +${added} / −${removed} 行`,
+    filesChanged: (n: number) => `変更ファイル ${n} 件`,
+    activeDays: (active: number, total: number) => `${total} 日中 ${active} 日活動`,
+    streak: (n: number) => `${n} 日連続`,
+
+    highlightsTitle: '今週のハイライト',
+    fastestMerge: '最速マージ',
+    biggestMerge: '最大の差分',
+    busiestRepo: '最も動いたリポジトリ',
+    busiestDay: '最も動いた日',
+    duration: (minutes: number) => {
+      if (minutes < 1) return '1 分未満'
+      if (minutes < 60) return `${minutes} 分`
+      if (minutes < 60 * 24) return `${Math.round(minutes / 60)} 時間`
+      return `${Math.round(minutes / (60 * 24))} 日`
+    },
+    lineCount: (lines: string) => `${lines} 行`,
+    prCount: (n: number) => `PR ${n} 件`,
+
+    quietTitle: '静かな一週間でした。',
+    quietBody:
+      'この期間には作成・マージ・レビューがありませんでした。ほかのタブに、待っているものがあります。',
   },
 
   pr: {
