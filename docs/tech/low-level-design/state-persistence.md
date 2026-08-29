@@ -1,0 +1,86 @@
+# State persistence
+
+`backend/internal/state/state.go`
+
+Two JSON files in one directory. That is the entire persistence layer.
+
+| File | Holds | Corrupt file behaviour |
+| --- | --- | --- |
+| `settings.json` | teams, orgs, limit, window override, view flags | startup error |
+| `session.json` | auth mode, login, token, created stamp | ignored, user signs in again |
+
+The asymmetry is deliberate. A corrupt session costs a sign-in; a corrupt
+settings file means somebody's followed teams are about to be silently replaced
+with defaults, and failing loudly is the kinder outcome.
+
+## The store
+
+```go
+type Store struct {
+    mu           sync.RWMutex
+    settingsPath string
+    sessionPath  string
+    settings     Settings
+    session      *Session
+}
+```
+
+Everything goes through the mutex, and `Session()` returns a **copy** — a caller
+holding a pointer into the store could otherwise mutate the token in place. That
+is what `TestSessionReturnsCopy` is for.
+
+## File modes
+
+The directory is created `0700` and then `Chmod`ed to `0700` explicitly, because
+`MkdirAll` only applies the mode to directories it actually creates: a state
+directory that already existed — the pre-rename one, or a path handed in through
+`GHDASH_STATE_DIR` — keeps whatever it had, which may well be world-readable.
+The chmod is defence in depth and its failure is not worth aborting over.
+
+Both files are written `0600`. `TestPersistedFilesAreOwnerOnly` asserts it.
+
+## Atomic writes
+
+Write to a temp file in the same directory, then `rename` over the target. A
+crash mid-write leaves either the old file or the new one, never half of either.
+`TestSaveLeavesNoTempFile` checks the temp file does not survive a successful
+write.
+
+## Normalization
+
+`normalize` runs on every load and every save, so an out-of-range value is
+**corrected rather than rejected**:
+
+| Field | Rule |
+| --- | --- |
+| `Limit` | outside 1–100 → the configured default |
+| `WindowHours` | outside 0–720 (`MaxWindowHours`) → 0, the business-day rule |
+| `Teams`, `Orgs` | trimmed, case-insensitively deduped, truncated to `MaxRefs` (200) |
+
+Shape validation is separate and lives in the API handler, where it can return a
+400 with a message worth reading: a team must contain a slash, an org must not.
+
+`MaxWindowHours` is 30 days. Past roughly 292 years the hours-to-`Duration`
+multiplication overflows outright, and nothing here is useful at that range.
+
+## Where the directory is
+
+`config.defaultStateDir()`:
+
+1. `<UserConfigDir>/yana-chan-4k` if it exists.
+2. Otherwise `<UserConfigDir>/github-dashboarder` if *that* exists — the
+   pre-rename directory.
+3. Otherwise `<UserConfigDir>/yana-chan-4k`, which will be created.
+
+The fallback matters because the expensive thing to lose is the session: losing
+it means authenticating again. Once the new directory exists it always wins, so
+this is a one-way migration that never runs twice.
+
+`GHDASH_STATE_DIR` overrides all of it, and is what the container and the pod
+set (`/data`).
+
+## Sign-out
+
+`ClearSession` removes `session.json` and drops the in-memory copy.
+`settings.json` is untouched — the teams you follow are not a secret and are not
+worth making you re-enter.
