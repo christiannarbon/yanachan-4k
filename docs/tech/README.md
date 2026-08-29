@@ -37,6 +37,14 @@ Symptom-first, grouped by where the symptom appears: [authentication](troublesho
 [networking](troubleshooting/networking.md), [build and tests](troubleshooting/build-and-tests.md),
 [Kubernetes](troubleshooting/kubernetes.md).
 
+## [Continuous integration](ci.md)
+
+Seven jobs on every pull request: the two halves compile and test, the shipped
+binary is built and smoke tested over HTTP, both Kubernetes overlays render and
+keep their security posture, the container image builds and behaves, the
+standard library is scanned for reachable vulnerabilities, and every internal
+documentation link is resolved. [What each job proves, and why](ci.md).
+
 ## Working on the code
 
 ```sh

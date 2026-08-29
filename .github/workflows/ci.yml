@@ -1,0 +1,339 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Nothing here writes to the repository. The image job builds but never pushes,
+# so the token needs no more than read access to the checkout.
+permissions:
+  contents: read
+
+# A new push to a pull request makes the previous run's answer irrelevant.
+# Runs on main are left alone so the history of what passed stays intact.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          # The toolchain is pinned in go.mod precisely so a local build, the
+          # Docker build and this run agree. Reading it from there means the
+          # pin has one home.
+          go-version-file: backend/go.mod
+          # The module has no third-party dependencies, so there is no module
+          # cache worth restoring -- and setup-go's cache wants a go.sum that
+          # this project does not have.
+          cache: false
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::not gofmt-clean; run 'make fmt'"
+            echo "$unformatted"
+            exit 1
+          fi
+          echo "gofmt clean"
+
+      - name: go vet
+        run: go vet ./...
+
+      # -race because the one piece of shared mutable state in the backend is
+      # state.Store, guarded by an RWMutex, and a lost lock there is exactly
+      # the bug that passes a serial test run.
+      - name: go test
+        run: go test -race -count=1 ./...
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matching the node the Dockerfile builds the bundle with.
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # ci, not install: it installs exactly the lockfile and fails when the
+      # lockfile and package.json disagree, which is the drift worth catching.
+      - name: npm ci
+        run: npm ci
+
+      # Run separately from the build even though `npm run build` type-checks
+      # first, so a type error reports as a type error. This is also where a
+      # key added to en.ts and not ja.ts fails: ja.ts is typed as the shape of
+      # en.ts, and vue-tsc is what enforces it.
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+  vulnerabilities:
+    name: Vulnerabilities
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: false
+
+      # The module has no third-party dependencies, so this is a standard
+      # library scan and the toolchain pin in go.mod is the whole of what it
+      # is scanning. That is not a small surface here: the one place this app
+      # talks to the network holding a GitHub token goes through crypto/tls,
+      # crypto/x509 and net/http, and govulncheck reports only the
+      # vulnerabilities this code actually reaches.
+      #
+      # Pinned, so a green tick means the same check it meant last week.
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+
+  build:
+    name: Build and smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend packages
+        working-directory: frontend
+        run: npm ci
+
+      # The same target a developer runs: build the bundle, stage it into
+      # internal/webui/dist, compile the binary with it embedded.
+      - name: make build
+        run: make build
+
+      # The two halves compile separately in the jobs above. This is the only
+      # place the shipped artefact -- one binary with the frontend inside it --
+      # is proven to exist and answer.
+      - name: Smoke test the binary
+        run: |
+          set -euo pipefail
+          state=$(mktemp -d)
+          GHDASH_ADDR=127.0.0.1:19080 GHDASH_STATE_DIR="$state" ./bin/yana-chan-4k &
+          server=$!
+          trap 'kill "$server" 2>/dev/null || true' EXIT
+
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:19080/api/health >/dev/null && break
+            sleep 1
+          done
+
+          curl -sf http://127.0.0.1:19080/api/health | grep -q '"status":"ok"'
+          echo "  health answers"
+
+          # A binary built without the bundle staged still compiles -- only
+          # .gitkeep is tracked in the embed directory -- and answers this
+          # with "frontend bundle is missing". So this is the embed check.
+          curl -sf http://127.0.0.1:19080/ | grep -q 'id="app"'
+          echo "  frontend is embedded"
+
+          # An unmatched API path must answer JSON, not index.html with a 200
+          # that the frontend would then try to JSON.parse.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19080/api/nope)
+          test "$code" = 404
+          echo "  unmatched api route answers 404"
+
+          # The dashboard endpoints need a session and must say so rather than
+          # rendering an empty board.
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19080/api/board)
+          test "$code" = 401
+          echo "  board requires a session"
+
+          # The DNS-rebinding guard: an unrecognised Host is refused outright.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Host: dns-rebind.example' http://127.0.0.1:19080/api/auth/status)
+          test "$code" = 403
+          echo "  host allowlist refuses an unknown name"
+
+          # ...and health is exempt from it, which is what lets a Kubernetes
+          # probe address the pod by IP.
+          code=$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Host: dns-rebind.example' http://127.0.0.1:19080/api/health)
+          test "$code" = 200
+          echo "  health is exempt from the allowlist"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yana-chan-4k-linux-amd64
+          path: bin/yana-chan-4k
+          retention-days: 7
+          if-no-files-found: error
+
+  manifests:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+    env:
+      # Both pinned. A validator that silently changes version is a validator
+      # whose green tick means something different every week.
+      KUSTOMIZE_VERSION: v5.4.3
+      KUBECONFORM_VERSION: v0.6.7
+      # The version the manifests are written against, matching make k8s-validate.
+      KUBERNETES_VERSION: 1.33.0
+    steps:
+      - uses: actions/checkout@v4
+
+      # Downloaded rather than taken from the runner image: what is
+      # preinstalled there changes without notice, and a schema check is only
+      # worth having if it is the same check every time.
+      - name: Install kustomize and kubeconform
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP/bin" kustomize
+          curl -sSfL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP/bin" kubeconform
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # Both overlays, not just dev. prod is the one nobody renders by hand,
+      # so it is the one that quietly breaks.
+      - name: Render both overlays
+        run: |
+          set -euo pipefail
+          kustomize build k8s/overlays/dev  > "$RUNNER_TEMP/dev.yaml"
+          kustomize build k8s/overlays/prod > "$RUNNER_TEMP/prod.yaml"
+
+      - name: Schema check
+        run: |
+          kubeconform -strict -summary \
+            -kubernetes-version "$KUBERNETES_VERSION" \
+            "$RUNNER_TEMP/dev.yaml" "$RUNNER_TEMP/prod.yaml"
+
+      # The security posture in k8s/base/deployment.yaml is deliberate and
+      # documented; each of these is one edit away from being lost, and none
+      # of them fails visibly when it is.
+      - name: Assert the pod hardening survived
+        run: |
+          set -euo pipefail
+          for file in "$RUNNER_TEMP/dev.yaml" "$RUNNER_TEMP/prod.yaml"; do
+            for setting in \
+              'runAsNonRoot: true' \
+              'readOnlyRootFilesystem: true' \
+              'allowPrivilegeEscalation: false' \
+              'automountServiceAccountToken: false' \
+              'type: Recreate'
+            do
+              if ! grep -q "$setting" "$file"; then
+                echo "::error file=k8s/base/deployment.yaml::$(basename "$file") lost '$setting'"
+                exit 1
+              fi
+            done
+            echo "  $(basename "$file") ok"
+          done
+
+      # ClusterIP with no Ingress is a security decision, not an oversight:
+      # the pod holds a GitHub token and has no login of its own.
+      - name: Assert nothing exposes the service
+        run: |
+          set -euo pipefail
+          for file in "$RUNNER_TEMP/dev.yaml" "$RUNNER_TEMP/prod.yaml"; do
+            if grep -qE '^kind: Ingress|type: (LoadBalancer|NodePort)' "$file"; then
+              echo "::error::$(basename "$file") exposes the service; see docs/tech/architecture/security.md"
+              exit 1
+            fi
+          done
+          echo "  service stays ClusterIP in both overlays"
+
+  image:
+    name: Container image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Built, never pushed. This job answers "does the multi-stage build still
+      # work", which is a different question from anything the jobs above ask:
+      # it is the only place the pinned base image digests are exercised.
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          push: false
+          load: true
+          tags: yana-chan-4k:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test the image
+        run: |
+          set -euo pipefail
+          docker run -d --name yana-ci -p 127.0.0.1:19080:19080 yana-chan-4k:ci
+          trap 'docker logs yana-ci 2>&1 | tail -20; docker rm -f yana-ci >/dev/null 2>&1 || true' EXIT
+
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:19080/api/health >/dev/null && break
+            sleep 1
+          done
+
+          curl -sf http://127.0.0.1:19080/api/health | grep -q '"status":"ok"'
+          echo "  health answers"
+
+          curl -sf http://127.0.0.1:19080/ | grep -q 'id="app"'
+          echo "  frontend is embedded"
+
+          # The runtime layer adds a user for a reason; a rebuild that drops
+          # the USER line still passes every other check in this file.
+          uid=$(docker exec yana-ci id -u)
+          test "$uid" = 10001
+          echo "  runs as uid 10001, not root"
+
+          # gh is not in the image, and the ambient-session path must stay off
+          # inside a container whatever the binary's own default becomes.
+          docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' yana-chan-4k:ci \
+            | grep -qx 'GHDASH_ALLOW_GH_CLI=false'
+          echo "  gh CLI sign-in is disabled in the image"
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # No npm install: the checker is dependency-free on purpose, so this job
+      # is a few seconds rather than an install.
+      - name: Check internal links
+        run: make docs-check

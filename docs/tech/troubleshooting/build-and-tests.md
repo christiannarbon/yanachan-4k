@@ -8,10 +8,13 @@ make check     # gofmt, go vet, go test ./..., vue-tsc --noEmit
 
 ## `make build` fails in the Go step
 
-**Missing embed directory.** `internal/webui/dist` must exist for `//go:embed
-all:dist` to compile. A placeholder `index.html` is committed so a clean
-checkout builds; if you deleted the directory, `make build-frontend` recreates
-it.
+**Missing embed directory.** `internal/webui/dist` must exist, and contain at
+least one file, for `//go:embed all:dist` to compile. Only `.gitkeep` is
+tracked there, and it is what makes a clean checkout build.
+
+Note that `make build-frontend` starts with `rm -rf` on that directory, so a
+local build **deletes the tracked `.gitkeep`** and leaves the worktree dirty.
+`git checkout backend/internal/webui/dist/.gitkeep` puts it back.
 
 **Toolchain mismatch.** `go.mod` declares `go 1.24` and pins
 `toolchain go1.25.0`, so a local build, the Docker build and CI agree. If your
