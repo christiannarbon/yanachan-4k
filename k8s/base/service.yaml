@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: yana-chan-4k
+  labels:
+    app.kubernetes.io/name: yana-chan-4k
+spec:
+  # ClusterIP only. Reach it with `make tunnel`, which port-forwards to
+  # localhost; the dashboard carries a GitHub token and has no login of its own,
+  # so it should not be exposed on an Ingress or LoadBalancer as it stands.
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: yana-chan-4k
+  ports:
+    - name: http
+      port: 19080
+      targetPort: http
