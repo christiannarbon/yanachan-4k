@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Language switch for the topbar.
+ * Language switch for the corner cluster.
  *
  * Two languages, so this is a segmented pair rather than a menu: both options
  * stay visible, each written in its own language, which is what someone
@@ -47,7 +47,7 @@ const { locale, localeNames, t, setLocale } = useI18n()
 }
 
 /* The selected language reads in the theme's fact colour, matching the
-   "showing active only" toggle sitting beside it in the topbar. */
+   "showing active only" toggle down in the tab row. */
 .opt-on {
   background: var(--panel);
   border-color: var(--fact-line);
