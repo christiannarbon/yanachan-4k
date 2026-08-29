@@ -246,3 +246,54 @@ jobs:
             fi
           done
           echo "  service stays ClusterIP in both overlays"
+
+  image:
+    name: Container image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Built, never pushed. This job answers "does the multi-stage build still
+      # work", which is a different question from anything the jobs above ask:
+      # it is the only place the pinned base image digests are exercised.
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/Dockerfile
+          push: false
+          load: true
+          tags: yana-chan-4k:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test the image
+        run: |
+          set -euo pipefail
+          docker run -d --name yana-ci -p 127.0.0.1:19080:19080 yana-chan-4k:ci
+          trap 'docker logs yana-ci 2>&1 | tail -20; docker rm -f yana-ci >/dev/null 2>&1 || true' EXIT
+
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:19080/api/health >/dev/null && break
+            sleep 1
+          done
+
+          curl -sf http://127.0.0.1:19080/api/health | grep -q '"status":"ok"'
+          echo "  health answers"
+
+          curl -sf http://127.0.0.1:19080/ | grep -q 'id="app"'
+          echo "  frontend is embedded"
+
+          # The runtime layer adds a user for a reason; a rebuild that drops
+          # the USER line still passes every other check in this file.
+          uid=$(docker exec yana-ci id -u)
+          test "$uid" = 10001
+          echo "  runs as uid 10001, not root"
+
+          # gh is not in the image, and the ambient-session path must stay off
+          # inside a container whatever the binary's own default becomes.
+          docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' yana-chan-4k:ci \
+            | grep -qx 'GHDASH_ALLOW_GH_CLI=false'
+          echo "  gh CLI sign-in is disabled in the image"
