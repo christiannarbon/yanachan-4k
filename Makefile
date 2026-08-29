@@ -105,8 +105,12 @@ test: ## Run the Go tests and the frontend type check
 fmt: ## Format the Go sources
 	@cd $(BACKEND) && gofmt -w . && go vet ./...
 
+.PHONY: docs-check
+docs-check: ## Check every internal link in the documentation
+	@node $(ROOT)/scripts/check-doc-links.mjs
+
 .PHONY: check
-check: fmt test ## Format, vet and test
+check: fmt test docs-check ## Format, vet, test and check the docs
 
 # -------------------------------------------------------------------- run ---
 

@@ -297,3 +297,18 @@ jobs:
           docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' yana-chan-4k:ci \
             | grep -qx 'GHDASH_ALLOW_GH_CLI=false'
           echo "  gh CLI sign-in is disabled in the image"
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # No npm install: the checker is dependency-free on purpose, so this job
+      # is a few seconds rather than an install.
+      - name: Check internal links
+        run: make docs-check
