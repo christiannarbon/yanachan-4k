@@ -1,0 +1,126 @@
+/*
+ * Calorie meter — decoration for the Yanami theme, and only that theme.
+ *
+ * Every other theme in this app is a pure data change: a palette, a corner
+ * scale and two typefaces, and the components never learn its name. This file
+ * is the one deliberate exception, so it is worth saying why it exists rather
+ * than letting it look like an oversight.
+ *
+ * The thing being evoked is the committee's secret calorie survey at
+ * makeine-anime.com/special/calorie_meter/, and what makes that page
+ * recognisable is not its palette. It is four pieces of drawing: kcal totals
+ * set as Quantico numerals in yellow tiles, white cards ringed in a 2px navy
+ * outline that sits inside the corner radius, a vermillion cap badge on the
+ * figure that matters, and a flat yellow marker run behind the heading.
+ * Tokens cannot express any of that. So the shapes live here instead, all of
+ * them behind [data-art="yanami-calorie-meter"] and inert under every other
+ * theme.
+ *
+ * Two rules keep this contained:
+ *
+ *   1. Nothing here is load-bearing. Strip the file and the theme is still a
+ *      complete, legible palette; it just stops being an ode.
+ *   2. Colours are the site's own literals rather than tokens, because that is
+ *      the point of the exercise -- the generated palette darkens Yanami's
+ *      #ff7031 to #d94200 to clear its contrast floor, which is right for a
+ *      4px border on a card and wrong for the one badge that is supposed to
+ *      shout. Each literal is used only where it was measured to be readable;
+ *      the ratios are noted inline.
+ *
+ * The selectors carry an extra class on purpose. Vue compiles a component's
+ * scoped `.tab-count` to `.tab-count[data-v-hash]`, which is two specificity
+ * points; a bare `[data-art] .tab-count` ties with it and would then depend on
+ * stylesheet order, which is not stable for runtime-injected component styles.
+ * Adding the ancestor breaks the tie for good.
+ */
+
+[data-art="yanami-calorie-meter"] {
+  /* Straight from the site's :root. */
+  --cal-navy: #070a7d;
+  --cal-orange: #ff7031;
+  --cal-yellow: #fff100;
+  --cal-line: #dae9f5;
+}
+
+/* --- kcal digit tiles ------------------------------------------------------
+   Upstream sets each digit of the running total in its own yellow rounded tile
+   in Quantico. Every count in this app -- the per-tab totals -- gets the same
+   treatment. Navy on yellow is 13.2:1, and the hairline keeps the tile's edge
+   from dissolving into the white panel behind it, where yellow alone is 1.2:1. */
+
+[data-art="yanami-calorie-meter"] .tabs .tab-count {
+  min-width: 24px;
+  padding: 1px 7px;
+  border: 1px solid var(--cal-navy);
+  border-radius: 6px;
+  background: var(--cal-yellow);
+  color: var(--cal-navy);
+  font-family: "Quantico", var(--font-fallback-sans);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* A tab holding something that needs you takes the cap's vermillion instead.
+   Navy stays the ink: it is 5.7:1 on this orange, where white is only 2.8:1. */
+[data-art="yanami-calorie-meter"] .tabs .tab-count.tab-count-hot {
+  background: var(--cal-orange);
+  color: var(--cal-navy);
+}
+
+[data-art="yanami-calorie-meter"] .tabs .tab-dot {
+  background: var(--cal-orange);
+}
+
+/* --- the navy ring ---------------------------------------------------------
+   `.p-calorie_total` is a white card with a second 2px navy rule drawn inside
+   its own radius. An inset shadow reproduces it without a pseudo-element and
+   without moving anything, so nothing reflows when the theme changes. */
+
+[data-art="yanami-calorie-meter"] .content .card,
+[data-art="yanami-calorie-meter"] .gate .card,
+[data-art="yanami-calorie-meter"] .picker .menu {
+  box-shadow: inset 0 0 0 2px var(--cal-navy), var(--shadow);
+}
+
+/* Pull request cards keep their tone-coloured left border -- that border is how
+   you read the board -- so they get the pale rule the calorie table uses
+   between rows rather than a competing navy ring. */
+[data-art="yanami-calorie-meter"] .list .pr {
+  border-top-color: var(--cal-line);
+  border-right-color: var(--cal-line);
+  border-bottom-color: var(--cal-line);
+}
+
+/* --- the wordmark ----------------------------------------------------------
+   The page runs a flat yellow marker behind its title. Sitting it at the
+   baseline as a background keeps the navy heading at its full 15.6:1 on the
+   panel; the yellow is decoration underneath, never a text background. */
+
+[data-art="yanami-calorie-meter"] .topbar .brand h1,
+[data-art="yanami-calorie-meter"] .gate .gate-head h1 {
+  width: -moz-fit-content;
+  width: fit-content;
+  padding: 0 2px;
+  background-image: linear-gradient(var(--cal-yellow), var(--cal-yellow));
+  background-repeat: no-repeat;
+  background-size: 100% 0.34em;
+  background-position: 0 88%;
+  letter-spacing: 0.01em;
+}
+
+/* Totals and timestamps read as data on this theme, the way the survey's own
+   figures do. Quantico only ships 400 and 700, so there is no 500 to ask for. */
+[data-art="yanami-calorie-meter"] .content .section-head p,
+[data-art="yanami-calorie-meter"] .brand .brand-sub {
+  font-variant-numeric: tabular-nums;
+}
+
+[data-art="yanami-calorie-meter"] .brand .brand-sub .attention {
+  color: var(--cal-navy);
+  background: var(--cal-orange);
+  border-radius: 4px;
+  padding: 0 6px;
+  font-family: "Quantico", var(--font-fallback-sans);
+  font-weight: 700;
+}
