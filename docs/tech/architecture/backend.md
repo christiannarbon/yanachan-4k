@@ -92,8 +92,11 @@ settings file is an error worth failing on. See
 `Cache-Control`; `index.html` gets `no-store`, so a rebuilt bundle is picked up
 on the next reload.
 
-A placeholder `dist/index.html` is committed so `go build` works on a clean
-checkout without running the frontend build first.
+Only `dist/.gitkeep` is tracked. That is enough for `//go:embed all:dist` to
+compile on a clean checkout -- the `all:` prefix matches dotfiles -- so the
+backend builds before the frontend has ever been built. What it does not give
+you is a page: until `make build-frontend` has staged a bundle, `/` answers
+`frontend bundle is missing` with a 404.
 
 ## Tests
 

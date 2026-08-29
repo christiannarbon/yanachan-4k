@@ -76,8 +76,9 @@ there is a 405.
 
 ## `404 frontend bundle is missing; run 'make build-frontend'`
 
-The Go binary was built without a staged frontend. `make run` does both; `go run
-./cmd/server` on a clean checkout serves the committed placeholder.
+The Go binary was built without a staged frontend. Only `.gitkeep` is tracked
+in the embed directory, so `go run ./cmd/server` on a clean checkout compiles
+fine and then has no page to serve. `make run` builds both.
 
 ```sh
 make build-frontend
