@@ -284,7 +284,7 @@ jobs:
       # work", which is a different question from anything the jobs above ask:
       # it is the only place the pinned base image digests are exercised.
       - name: Build the image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: deploy/docker/Dockerfile
