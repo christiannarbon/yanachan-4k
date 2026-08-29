@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Nothing here writes to the repository. The image job builds but never pushes,
+# so the token needs no more than read access to the checkout.
+permissions:
+  contents: read
+
+# A new push to a pull request makes the previous run's answer irrelevant.
+# Runs on main are left alone so the history of what passed stays intact.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          # The toolchain is pinned in go.mod precisely so a local build, the
+          # Docker build and this run agree. Reading it from there means the
+          # pin has one home.
+          go-version-file: backend/go.mod
+          # The module has no third-party dependencies, so there is no module
+          # cache worth restoring -- and setup-go's cache wants a go.sum that
+          # this project does not have.
+          cache: false
+
+      - name: gofmt
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::not gofmt-clean; run 'make fmt'"
+            echo "$unformatted"
+            exit 1
+          fi
+          echo "gofmt clean"
+
+      - name: go vet
+        run: go vet ./...
+
+      # -race because the one piece of shared mutable state in the backend is
+      # state.Store, guarded by an RWMutex, and a lost lock there is exactly
+      # the bug that passes a serial test run.
+      - name: go test
+        run: go test -race -count=1 ./...
