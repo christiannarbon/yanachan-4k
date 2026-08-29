@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Theme picker for the topbar.
+ * Theme picker for the corner cluster.
  *
  * A plain button that opens the list of available palettes, grouped by kind:
  * Yanami's calorie meter first, then the app's own, then the painting-derived
