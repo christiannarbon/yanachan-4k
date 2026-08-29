@@ -4,22 +4,32 @@ import AuthGate from './components/AuthGate.vue'
 import LocalePicker from './components/LocalePicker.vue'
 import PrCard from './components/PrCard.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import StatsPanel from './components/StatsPanel.vue'
 import TabBar from './components/TabBar.vue'
 import ThemePicker from './components/ThemePicker.vue'
 import Msg from './i18n/Msg.vue'
 import { useI18n } from './i18n'
 import { ApiError, api } from './lib/api'
-import type { AuthStatus, Board, Settings } from './lib/types'
+import type { AuthStatus, Board, Settings, Stats } from './lib/types'
 
 const { t, ago, stamp, sectionTitle, windowLabel } = useI18n()
 
+/** Tabs that are not board sections, so a reload never navigates away from
+ *  them even when the section list changes underneath. */
+const FIXED_TABS = ['dashboard', 'settings']
+
 const authStatus = ref<AuthStatus | null>(null)
 const board = ref<Board | null>(null)
+const stats = ref<Stats | null>(null)
 const settings = ref<Settings | null>(null)
-const activeTab = ref('mine')
+/** You land on your own week; the queues are a click away. */
+const activeTab = ref('dashboard')
 const loading = ref(true)
 const refreshing = ref(false)
 const error = ref('')
+/** Kept apart from `error` so a failing week does not blank the board's own
+ *  notice, and so the dashboard can report its trouble in its own tab. */
+const statsError = ref('')
 const autoRefresh = ref(false)
 const now = ref(Date.now())
 
@@ -41,7 +51,7 @@ watch(autoRefresh, (on) => (on ? startAutoRefresh() : stopAutoRefresh()))
 
 function startAutoRefresh() {
   stopAutoRefresh()
-  refreshTimer = window.setInterval(() => void loadBoard(), REFRESH_MS)
+  refreshTimer = window.setInterval(() => void refreshAll(), REFRESH_MS)
 }
 function stopAutoRefresh() {
   if (refreshTimer !== undefined) window.clearInterval(refreshTimer)
@@ -55,7 +65,7 @@ async function bootstrap() {
     authStatus.value = await api.authStatus()
     if (authStatus.value.authenticated) {
       settings.value = await api.settings()
-      await loadBoard()
+      await refreshAll()
     }
   } catch (e) {
     error.value = (e as Error).message
@@ -64,14 +74,24 @@ async function bootstrap() {
   }
 }
 
-async function loadBoard() {
+/** Both halves of a refresh go out together: they are separate endpoints, and
+ *  the landing tab should not wait on the queues it is not showing. */
+async function refreshAll() {
   refreshing.value = true
+  try {
+    await Promise.all([loadBoard(), loadStats()])
+  } finally {
+    refreshing.value = false
+  }
+}
+
+async function loadBoard() {
   error.value = ''
   try {
     const next = await api.board()
     board.value = next
     now.value = Date.now()
-    if (!next.sections.some((s) => s.id === activeTab.value) && activeTab.value !== 'settings') {
+    if (!FIXED_TABS.includes(activeTab.value) && !next.sections.some((s) => s.id === activeTab.value)) {
       activeTab.value = next.sections[0]?.id ?? 'mine'
     }
   } catch (e) {
@@ -81,8 +101,19 @@ async function loadBoard() {
     } else {
       error.value = (e as Error).message
     }
-  } finally {
-    refreshing.value = false
+  }
+}
+
+async function loadStats() {
+  statsError.value = ''
+  try {
+    stats.value = await api.stats()
+  } catch (e) {
+    // A 401 is the board's to handle: it reloads the auth status, and this
+    // half would only race it to the same conclusion.
+    if (!(e instanceof ApiError && e.status === 401)) {
+      statsError.value = (e as Error).message
+    }
   }
 }
 
@@ -93,14 +124,16 @@ async function onAuthenticated() {
 async function onSignOut() {
   await api.logout()
   board.value = null
+  stats.value = null
   settings.value = null
-  activeTab.value = 'mine'
+  activeTab.value = 'dashboard'
   authStatus.value = await api.authStatus()
 }
 
 async function onSettingsSaved(saved: Settings) {
   settings.value = saved
-  await loadBoard()
+  // The limit and the followed refs feed both endpoints, so both reload.
+  await refreshAll()
 }
 
 const currentSection = computed(() => board.value?.sections.find((s) => s.id === activeTab.value) ?? null)
@@ -113,6 +146,7 @@ async function toggleOnlyActive() {
   settings.value = await api.saveSettings(next)
   await loadBoard()
 }
+
 </script>
 
 <template>
@@ -143,14 +177,19 @@ async function toggleOnlyActive() {
             </p>
           </div>
           <div class="row controls">
-            <button class="ghost" :class="{ toggled: settings.onlyActive }" @click="toggleOnlyActive">
+            <button
+              v-if="activeTab !== 'dashboard' && activeTab !== 'settings'"
+              class="ghost"
+              :class="{ toggled: settings.onlyActive }"
+              @click="toggleOnlyActive"
+            >
               {{ settings.onlyActive ? t.board.showingActiveOnly : t.board.showingEverything }}
             </button>
             <label class="auto soft">
               <input type="checkbox" v-model="autoRefresh" />
               {{ t.board.autoRefresh }}
             </label>
-            <button class="primary" :disabled="refreshing" @click="loadBoard">
+            <button class="primary" :disabled="refreshing" @click="refreshAll">
               {{ refreshing ? t.board.refreshing : t.board.refresh }}
             </button>
             <LocalePicker />
@@ -166,8 +205,15 @@ async function toggleOnlyActive() {
         <p v-if="error" class="notice">{{ error }}</p>
         <p v-if="board.warning" class="notice">{{ t.board.githubReported(board.warning) }}</p>
 
+        <template v-if="activeTab === 'dashboard'">
+          <p v-if="statsError" class="notice">{{ statsError }}</p>
+          <StatsPanel v-if="stats" :stats="stats" />
+          <p v-else-if="!statsError" class="centered soft">{{ t.common.loading }}</p>
+          <p v-if="stats?.warning" class="notice">{{ t.board.githubReported(stats.warning) }}</p>
+        </template>
+
         <SettingsPanel
-          v-if="activeTab === 'settings'"
+          v-else-if="activeTab === 'settings'"
           :settings="settings"
           :session-mode="board.authMode"
           :login="board.login"
