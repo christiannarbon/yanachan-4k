@@ -4,8 +4,7 @@ import { useI18n } from '../i18n'
 import Msg from '../i18n/Msg.vue'
 import { api } from '../lib/api'
 import type { AuthStatus, DeviceStart } from '../lib/types'
-import LocalePicker from './LocalePicker.vue'
-import ThemePicker from './ThemePicker.vue'
+import CornerControls from './CornerControls.vue'
 
 const props = defineProps<{ status: AuthStatus }>()
 const emit = defineEmits<{ (e: 'authenticated'): void }>()
@@ -132,13 +131,10 @@ const cliStatus = props.status.ghCli
 
 <template>
   <div class="gate">
+    <CornerControls class="gate-corner" />
+
     <header class="gate-head">
-      <div class="row">
-        <h1>{{ t.appName }}</h1>
-        <span class="spacer" />
-        <LocalePicker />
-        <ThemePicker />
-      </div>
+      <h1>{{ t.appName }}</h1>
       <p class="soft">{{ t.auth.intro }}</p>
     </header>
 
@@ -267,6 +263,15 @@ const cliStatus = props.status.ghCli
   flex-direction: column;
   gap: 16px;
 }
+/* The gate has no topbar to sit in, so the cluster takes the window's own
+   corner -- the same place it occupies once the board is up. */
+.gate-corner {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 20;
+}
+
 .gate-head h1 {
   margin: 0;
   font-size: 22px;
