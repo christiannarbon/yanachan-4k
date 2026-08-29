@@ -57,3 +57,34 @@ jobs:
       # the bug that passes a serial test run.
       - name: go test
         run: go test -race -count=1 ./...
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matching the node the Dockerfile builds the bundle with.
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # ci, not install: it installs exactly the lockfile and fails when the
+      # lockfile and package.json disagree, which is the drift worth catching.
+      - name: npm ci
+        run: npm ci
+
+      # Run separately from the build even though `npm run build` type-checks
+      # first, so a type error reports as a type error. This is also where a
+      # key added to en.ts and not ja.ts fails: ja.ts is typed as the shape of
+      # en.ts, and vue-tsc is what enforces it.
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
