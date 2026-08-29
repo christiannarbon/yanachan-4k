@@ -124,3 +124,58 @@
   font-family: "Quantico", var(--font-fallback-sans);
   font-weight: 700;
 }
+
+/* --- the week's kcal total -------------------------------------------------
+   The dashboard's hero figure is the calorie total, which is the one number on
+   this page the survey would actually have printed. It gets the full treatment
+   the site gives its running total: Quantico numerals, the yellow tile, the
+   navy rule drawn around it. Navy on this yellow is 13.2:1, the same pairing
+   measured for the tab counts above, so the 2px rule is there to keep the
+   tile's edge off the white panel rather than to carry any contrast. */
+
+[data-art="yanami-calorie-meter"] .stats .hero-num {
+  display: inline-block;
+  padding: 0 14px;
+  border: 2px solid var(--cal-navy);
+  border-radius: 10px;
+  background: var(--cal-yellow);
+  color: var(--cal-navy);
+  font-family: "Quantico", var(--font-fallback-sans);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+[data-art="yanami-calorie-meter"] .stats .hero-unit {
+  color: var(--cal-navy);
+  font-family: "Quantico", var(--font-fallback-sans);
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+/* The four headline counts are figures too, so they take the numerals without
+   the tile -- four more yellow blocks under the hero would compete with it.
+   Navy on the sunken panel is 12.4:1. */
+[data-art="yanami-calorie-meter"] .stats .tile-value {
+  color: var(--cal-navy);
+  font-family: "Quantico", var(--font-fallback-sans);
+}
+
+/* The streak takes the vermillion cap, the same badge the topbar puts on the
+   count of pull requests needing you: navy on this orange is 5.7:1, where
+   white would be 2.8:1. It is the one figure on the page that is a run rather
+   than a total, which is exactly what the cap is for. */
+[data-art="yanami-calorie-meter"] .stats .hero-caption .streak {
+  color: var(--cal-navy);
+  background: var(--cal-orange);
+  border-radius: 4px;
+  padding: 0 6px;
+  font-family: "Quantico", var(--font-fallback-sans);
+  font-weight: 700;
+}
+
+/* Axis ticks and the chart's readout are data, set the way the survey sets
+   its own table. */
+[data-art="yanami-calorie-meter"] .chart .tick,
+[data-art="yanami-calorie-meter"] .chart .tip {
+  font-variant-numeric: tabular-nums;
+}
