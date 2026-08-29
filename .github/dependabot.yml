@@ -1,0 +1,37 @@
+# Dependency updates.
+#
+# The Go module has no third-party dependencies, so there is no gomod entry
+# here: govulncheck against the standard library is the check that matters
+# there, and the toolchain is pinned in backend/go.mod by hand.
+version: 2
+updates:
+  # The workflow pins actions to major versions; this is what moves them.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+
+  # The Dockerfile pins its base images by digest rather than tag, on purpose:
+  # a tag is mutable and a rebuilt upstream would silently change what goes
+  # into the binary. The cost of that is a manual refresh, which is exactly
+  # what this automates.
+  - package-ecosystem: docker
+    directory: /deploy/docker
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: build
+
+  # Grouped and monthly: the frontend has six packages and a stream of
+  # individual bumps would be noise rather than signal.
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: monthly
+    groups:
+      frontend:
+        patterns: ["*"]
+    commit-message:
+      prefix: build
