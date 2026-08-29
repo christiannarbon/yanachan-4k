@@ -250,7 +250,7 @@ func TestSettingsValidation(t *testing.T) {
 // rather than reaching for a nil client.
 func TestUnauthenticatedEndpoints(t *testing.T) {
 	h := newTestHandler(t, config.Config{Addr: "127.0.0.1:19080"})
-	for _, path := range []string{"/api/board", "/api/suggestions"} {
+	for _, path := range []string{"/api/board", "/api/stats", "/api/suggestions"} {
 		w := do(t, h, "GET", path, "127.0.0.1:19080", nil, "")
 		if w.Code != http.StatusUnauthorized {
 			t.Errorf("%s: got %d, want 401", path, w.Code)

@@ -16,6 +16,7 @@ import (
 	"github.com/christiannarbon/yanachan-4k/backend/internal/board"
 	"github.com/christiannarbon/yanachan-4k/backend/internal/config"
 	"github.com/christiannarbon/yanachan-4k/backend/internal/state"
+	"github.com/christiannarbon/yanachan-4k/backend/internal/stats"
 )
 
 type Server struct {
@@ -74,6 +75,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/settings", s.handlePutSettings)
 	mux.HandleFunc("GET /api/suggestions", s.handleSuggestions)
 	mux.HandleFunc("GET /api/board", s.handleBoard)
+	mux.HandleFunc("GET /api/stats", s.handleStats)
 
 	// Anything under /api/ that did not match above is an API miss, not a
 	// client-side route: answer in JSON rather than handing back index.html
@@ -348,6 +350,37 @@ func (s *Server) handleBoard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, b)
+}
+
+// handleStats answers the landing dashboard: the viewer's own week.
+func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
+	cl, sess, err := s.auth.client()
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+	settings := s.store.Settings()
+
+	days := stats.DefaultDays
+	if v := intParam(r, "days"); v > 0 && v <= stats.MaxDays {
+		days = v
+	}
+
+	out, err := stats.Build(r.Context(), cl, stats.Request{
+		Login: sess.Login,
+		Days:  days,
+		Now:   time.Now(),
+		Limit: settings.Limit,
+	})
+	if err != nil {
+		status := http.StatusBadGateway
+		if errors.Is(err, errNoSession) {
+			status = http.StatusUnauthorized
+		}
+		writeError(w, status, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func intParam(r *http.Request, key string) int {
