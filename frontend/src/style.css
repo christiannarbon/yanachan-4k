@@ -1,0 +1,140 @@
+/* Yana-chan 4K — app-level styles.
+ *
+ * Colour, corners and typefaces come from the themes: styles/theme.css holds
+ * everything a theme does not change (spacing, motion, fallback stacks) and
+ * styles/art-themes.css holds one light palette per theme, selected by the
+ * [data-art] attribute on <html>. Both are imported by main.ts, ahead of this
+ * file, so the derived tokens below can build on them.
+ *
+ * Rules here speak only the themes' semantic vocabulary — --panel, --text,
+ * --fact, --dim — so adding a palette stays a data change. The app is
+ * light-mode only, matching the themes; there is no prefers-color-scheme block.
+ */
+
+:root {
+  /* --- derived tokens ---------------------------------------------------
+     The themes give a role (--fact) and its wash (--fact-soft) but no rule
+     colour between the two, and no heading ink. These fill the gap in terms
+     of theme tokens, so they follow whichever palette is active. */
+
+  /* Hairlines for blocks and chips that sit on a soft wash. */
+  --fact-line: color-mix(in srgb, var(--fact) 25%, var(--fact-soft));
+  --dim-line: color-mix(in srgb, var(--dim) 25%, var(--dim-soft));
+  /* Border a neutral control takes on hover, tinted towards the accent. */
+  --accent-line: color-mix(in srgb, var(--accent) 45%, var(--border));
+  /* Headings are body ink pulled towards the theme's primary. */
+  --heading: color-mix(in srgb, var(--fact) 55%, var(--text));
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings carry the theme's display face; body copy stays on its plain face,
+   which is the pairing each theme was designed around. */
+h1, h2, h3, h4 { font-family: var(--font-display); }
+
+a { color: var(--accent); }
+a:hover { color: var(--accent-hover); }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+  padding: 6px 12px;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+button:hover:not(:disabled) { background: var(--fact-soft); border-color: var(--accent-line); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+button.accent {
+  background: var(--dim);
+  border-color: var(--dim);
+  color: var(--on-dim);
+}
+button.accent:hover:not(:disabled) { background: var(--on-dim-soft); border-color: var(--on-dim-soft); }
+
+button.ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
+button.ghost:hover:not(:disabled) { background: var(--bg-sunken); border-color: transparent; }
+
+input[type="text"], input[type="number"], select {
+  font: inherit;
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text);
+}
+
+code, .mono { font-family: var(--font-mono); font-size: 0.92em; }
+
+.muted { color: var(--text-faint); }
+.soft { color: var(--text-muted); }
+
+.card {
+  background: var(--panel-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* Kana and kanji are already wide and evenly spaced; the tracking that opens
+   up a short uppercase Latin label only loosens them. */
+html[lang="ja"] .badge { letter-spacing: 0; }
+
+/* Each soft wash carries its own ink: a chip fill and a label on that fill
+   need different lightnesses of the one hue. */
+.badge-green  { background: var(--fact-soft); color: var(--on-fact-soft); border-color: var(--fact-line); }
+.badge-orange { background: var(--dim-soft);  color: var(--on-dim-soft);  border-color: var(--dim-line); }
+.badge-neutral{ background: var(--bg-sunken); color: var(--text-faint);   border-color: var(--border); }
+.badge-outline{ background: transparent;      color: var(--text-muted);   border-color: var(--border-strong); }
+
+.row { display: flex; align-items: center; gap: 10px; }
+.wrap { flex-wrap: wrap; }
+.spacer { flex: 1 1 auto; }
+
+.notice {
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  border: 1px solid var(--dim-line);
+  background: var(--dim-soft);
+  color: var(--on-dim-soft);
+}

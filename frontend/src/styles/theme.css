@@ -1,0 +1,124 @@
+/*
+ * Base design tokens.
+ *
+ * The colour, corner and typeface tokens all come from the themes in
+ * art-themes.css, which is generated and selected by [data-art]. What lives
+ * here is everything that does not change with the theme: the spacing scale,
+ * motion, monospace face, fallback stacks, and a set of last-resort colour
+ * values so the app is never unstyled if [data-art] is missing.
+ *
+ * The app is light-mode only. There is no dark palette anywhere in the
+ * stylesheet and no prefers-color-scheme block, by design.
+ *
+ * Components speak only this semantic vocabulary -- --panel, --text, --fact --
+ * never M3 role names, so a new theme is a data change, not a refactor.
+ */
+
+:root {
+  /* --- theme-independent ------------------------------------------------ */
+
+  /* Fallback stacks. Each painting names its own display and body faces and
+     chains onto these, so a theme still reads correctly before its webfont
+     lands -- or if the network never delivers it.
+     Most themes' faces carry no kana or kanji, so both stacks end with the
+     platform Japanese faces: in Japanese the browser falls through to those
+     per glyph, and the Latin in the same line still gets the theme's face. */
+  --font-fallback-jp: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic",
+    "Yu Gothic UI", Meiryo, "Noto Sans JP", sans-serif;
+  --font-fallback-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, var(--font-fallback-jp);
+  --font-fallback-serif: Georgia, Cambria, "Times New Roman", Times,
+    "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif;
+  --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* 4px base scale, shared by every painting. */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur: 140ms;
+
+  /* --- last-resort values ----------------------------------------------- */
+
+  /* Overridden wholesale by whichever [data-art] theme is active. These exist
+     only so a missing attribute degrades to something legible rather than to
+     transparent-on-transparent, and so mirror the Studio Paper theme. */
+  --font-display: var(--font-fallback-serif);
+  --font-sans: var(--font-fallback-sans);
+
+  --radius-sm: 4px;
+  --radius: 7px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  --bg: #f6f4f0;
+  --bg-sunken: #f2f0ec;
+  --panel: #ffffff;
+  --panel-raised: #ffffff;
+  --overlay: rgba(0, 0, 0, 0.42);
+
+  --border: #e3dfd8;
+  --border-strong: #cec8be;
+
+  --text: #1c1917;
+  --text-muted: #57534e;
+  --text-faint: #79716b;
+
+  --fact: #0f766e;
+  --fact-soft: #dceceb;
+  --on-fact-soft: #0b524c;
+  --on-fact: #ffffff;
+  --dim: #b45309;
+  --dim-soft: #f5e6d8;
+  --on-dim-soft: #7c3a06;
+  --on-dim: #ffffff;
+  --source: #57534e;
+  --source-soft: #e6e4e2;
+  --on-source-soft: #44403c;
+  --conformed: #7c2d12;
+  --conformed-soft: #f0e2dc;
+  --on-conformed-soft: #7c2d12;
+
+  --danger: #b91c1c;
+  --danger-soft: #f6e2e2;
+  --on-danger-soft: #911515;
+  --on-danger: #ffffff;
+  --warning: #a16207;
+  --warning-soft: #f4ebda;
+  --on-warning-soft: #6d4205;
+  --on-warning: #ffffff;
+  --info: #1d4ed8;
+  --info-soft: #e0e5f6;
+  --on-info-soft: #1d4ed8;
+  --on-info: #ffffff;
+  --ok: #15803d;
+
+  --accent: #0f766e;
+  --accent-hover: #115e56;
+  --accent-contrast: #ffffff;
+  --focus-ring: #0f766e;
+
+  --edge: #c3bcb1;
+  --edge-strong: #8c8377;
+  --edge-cross: #7c2d12;
+  --graph-bg: #f6f4f0;
+  --node-stroke: #f6f4f0;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.18);
+
+  color-scheme: light;
+}
