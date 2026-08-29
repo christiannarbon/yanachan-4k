@@ -30,6 +30,24 @@ type Query struct {
 	Search string
 }
 
+// buildBatch assembles one GraphQL document that runs every query as its own
+// aliased search over a shared fragment, plus the variables it reads. Both the
+// board's searches and the weekly stats go out this way: one round trip, one
+// rate-limit charge, and a partial failure that still returns the aliases that
+// did resolve.
+func buildBatch(queries []Query, fragment, spread string, limit int) (string, map[string]any) {
+	params := []string{"$n:Int!"}
+	fields := make([]string, 0, len(queries))
+	vars := map[string]any{"n": limit}
+	for i, q := range queries {
+		name := fmt.Sprintf("q%d", i)
+		params = append(params, "$"+name+":String!")
+		fields = append(fields, fmt.Sprintf("  %s: search(query:$%s, type:ISSUE, first:$n) { nodes { ...%s } }", q.Alias, name, spread))
+		vars[name] = q.Search
+	}
+	return fmt.Sprintf("query(%s) {\n%s\n}\n%s", strings.Join(params, ", "), strings.Join(fields, "\n"), fragment), vars
+}
+
 // BatchSearch runs every query in a single GraphQL request and returns the PRs
 // keyed by alias. A partial failure (for example one unreadable org) still
 // returns the aliases that did resolve, alongside the error.
@@ -39,18 +57,7 @@ func (c *Client) BatchSearch(ctx context.Context, queries []Query, limit int) (m
 		return out, nil
 	}
 
-	var params []string
-	var fields []string
-	vars := map[string]any{"n": limit}
-	params = append(params, "$n:Int!")
-	for i, q := range queries {
-		name := fmt.Sprintf("q%d", i)
-		params = append(params, "$"+name+":String!")
-		fields = append(fields, fmt.Sprintf("  %s: search(query:$%s, type:ISSUE, first:$n) { nodes { ...PRBits } }", q.Alias, name))
-		vars[name] = q.Search
-	}
-
-	doc := fmt.Sprintf("query(%s) {\n%s\n}\n%s", strings.Join(params, ", "), strings.Join(fields, "\n"), prBits)
+	doc, vars := buildBatch(queries, prBits, "PRBits", limit)
 
 	var data map[string]SearchResult
 	err := c.Do(ctx, doc, vars, &data)
