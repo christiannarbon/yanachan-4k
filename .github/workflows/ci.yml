@@ -171,3 +171,78 @@ jobs:
           path: bin/yana-chan-4k
           retention-days: 7
           if-no-files-found: error
+
+  manifests:
+    name: Kubernetes manifests
+    runs-on: ubuntu-latest
+    env:
+      # Both pinned. A validator that silently changes version is a validator
+      # whose green tick means something different every week.
+      KUSTOMIZE_VERSION: v5.4.3
+      KUBECONFORM_VERSION: v0.6.7
+      # The version the manifests are written against, matching make k8s-validate.
+      KUBERNETES_VERSION: 1.33.0
+    steps:
+      - uses: actions/checkout@v4
+
+      # Downloaded rather than taken from the runner image: what is
+      # preinstalled there changes without notice, and a schema check is only
+      # worth having if it is the same check every time.
+      - name: Install kustomize and kubeconform
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -sSfL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP/bin" kustomize
+          curl -sSfL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            | tar -xz -C "$RUNNER_TEMP/bin" kubeconform
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      # Both overlays, not just dev. prod is the one nobody renders by hand,
+      # so it is the one that quietly breaks.
+      - name: Render both overlays
+        run: |
+          set -euo pipefail
+          kustomize build k8s/overlays/dev  > "$RUNNER_TEMP/dev.yaml"
+          kustomize build k8s/overlays/prod > "$RUNNER_TEMP/prod.yaml"
+
+      - name: Schema check
+        run: |
+          kubeconform -strict -summary \
+            -kubernetes-version "$KUBERNETES_VERSION" \
+            "$RUNNER_TEMP/dev.yaml" "$RUNNER_TEMP/prod.yaml"
+
+      # The security posture in k8s/base/deployment.yaml is deliberate and
+      # documented; each of these is one edit away from being lost, and none
+      # of them fails visibly when it is.
+      - name: Assert the pod hardening survived
+        run: |
+          set -euo pipefail
+          for file in "$RUNNER_TEMP/dev.yaml" "$RUNNER_TEMP/prod.yaml"; do
+            for setting in \
+              'runAsNonRoot: true' \
+              'readOnlyRootFilesystem: true' \
+              'allowPrivilegeEscalation: false' \
+              'automountServiceAccountToken: false' \
+              'type: Recreate'
+            do
+              if ! grep -q "$setting" "$file"; then
+                echo "::error file=k8s/base/deployment.yaml::$(basename "$file") lost '$setting'"
+                exit 1
+              fi
+            done
+            echo "  $(basename "$file") ok"
+          done
+
+      # ClusterIP with no Ingress is a security decision, not an oversight:
+      # the pod holds a GitHub token and has no login of its own.
+      - name: Assert nothing exposes the service
+        run: |
+          set -euo pipefail
+          for file in "$RUNNER_TEMP/dev.yaml" "$RUNNER_TEMP/prod.yaml"; do
+            if grep -qE '^kind: Ingress|type: (LoadBalancer|NodePort)' "$file"; then
+              echo "::error::$(basename "$file") exposes the service; see docs/tech/architecture/security.md"
+              exit 1
+            fi
+          done
+          echo "  service stays ClusterIP in both overlays"
