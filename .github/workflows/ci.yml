@@ -89,6 +89,31 @@ jobs:
       - name: Build
         run: npm run build
 
+  vulnerabilities:
+    name: Vulnerabilities
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache: false
+
+      # The module has no third-party dependencies, so this is a standard
+      # library scan and the toolchain pin in go.mod is the whole of what it
+      # is scanning. That is not a small surface here: the one place this app
+      # talks to the network holding a GitHub token goes through crypto/tls,
+      # crypto/x509 and net/http, and govulncheck reports only the
+      # vulnerabilities this code actually reaches.
+      #
+      # Pinned, so a green tick means the same check it meant last week.
+      - name: govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+
   build:
     name: Build and smoke test
     runs-on: ubuntu-latest
