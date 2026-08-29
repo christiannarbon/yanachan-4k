@@ -1,0 +1,42 @@
+# Build output ---------------------------------------------------------------
+
+# The server binary, produced by `make build-backend`.
+/bin/
+
+# The Vue bundle, produced by `make build-frontend`.
+/frontend/dist/
+
+# The same bundle, staged for //go:embed. Everything in here is generated. Only
+# .gitkeep is tracked, so the directory exists on a clean checkout and the
+# //go:embed directive in webui.go still compiles before the frontend is built.
+/backend/internal/webui/dist/*
+!/backend/internal/webui/dist/.gitkeep
+
+# Dependencies ---------------------------------------------------------------
+
+node_modules/
+
+# Local run state ------------------------------------------------------------
+
+# `make dev` pids and logs.
+/.run/
+
+# `make k8s-tunnel` background port-forward.
+/.k8s-portforward.pid
+/.k8s-portforward.log
+
+# Local commit-pacing tool, not part of the project.
+/hackathon.sh
+
+# Settings and the stored GitHub token, if GHDASH_STATE_DIR points in-tree.
+# Anchored to the root: unanchored, these would match at any depth.
+/.yana/
+/session.json
+/settings.json
+
+# Editors and OS -------------------------------------------------------------
+
+.DS_Store
+*.swp
+.idea/
+.vscode/
