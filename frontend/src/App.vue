@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AuthGate from './components/AuthGate.vue'
-import LocalePicker from './components/LocalePicker.vue'
+import CornerControls from './components/CornerControls.vue'
 import PrCard from './components/PrCard.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import StatsPanel from './components/StatsPanel.vue'
 import TabBar from './components/TabBar.vue'
-import ThemePicker from './components/ThemePicker.vue'
 import Msg from './i18n/Msg.vue'
 import { useI18n } from './i18n'
 import { ApiError, api } from './lib/api'
@@ -176,6 +175,15 @@ async function toggleOnlyActive() {
               </template>
             </p>
           </div>
+          <CornerControls />
+        </div>
+        <div class="topbar-inner tabs-row">
+          <TabBar
+            class="tabs-strip"
+            :sections="board.sections"
+            :active-id="activeTab"
+            @select="activeTab = $event"
+          />
           <div class="row controls">
             <button
               v-if="activeTab !== 'dashboard' && activeTab !== 'settings'"
@@ -192,12 +200,7 @@ async function toggleOnlyActive() {
             <button class="primary" :disabled="refreshing" @click="refreshAll">
               {{ refreshing ? t.board.refreshing : t.board.refresh }}
             </button>
-            <LocalePicker />
-            <ThemePicker />
           </div>
-        </div>
-        <div class="topbar-inner tabs-row">
-          <TabBar :sections="board.sections" :active-id="activeTab" @select="activeTab = $event" />
         </div>
       </header>
 
@@ -290,7 +293,13 @@ async function toggleOnlyActive() {
   flex-wrap: wrap;
 }
 .topbar-inner:first-child { padding-top: 16px; padding-bottom: 12px; }
-.tabs-row { display: block; padding-bottom: 0; }
+
+/* The tab strip and the board's actions share the second row: the strip takes
+   the width it can and scrolls within it, the actions stay pinned right and
+   sit on the strip's baseline. Narrow windows wrap them onto their own line. */
+.tabs-row { align-items: flex-end; padding-bottom: 0; }
+.tabs-strip { flex: 1 1 320px; min-width: 0; }
+.tabs-row .controls { padding-bottom: 8px; }
 
 .brand h1 {
   margin: 0;
