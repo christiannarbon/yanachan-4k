@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: yana-chan-4k
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: yana-chan-4k
+    includeSelectors: false
+
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - deployment.yaml
+  - service.yaml
+
+images:
+  - name: yana-chan-4k
+    newTag: latest

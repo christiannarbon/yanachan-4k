@@ -1,0 +1,19 @@
+# A laptop cluster does not need the production headroom.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yana-chan-4k
+spec:
+  template:
+    spec:
+      containers:
+        - name: dashboard
+          # The image is loaded straight into the node, never pulled.
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi

@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yana-chan-4k
+  labels:
+    app.kubernetes.io/name: yana-chan-4k
+spec:
+  replicas: 1
+  # The state directory is a ReadWriteOnce volume, so the old pod must release
+  # it before the new one starts.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: yana-chan-4k
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: yana-chan-4k
+    spec:
+      # The pod carries a GitHub token and never talks to the Kubernetes API,
+      # so it has no business holding a service account token.
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: dashboard
+          image: yana-chan-4k:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 19080
+          env:
+            - name: GHDASH_ADDR
+              value: ":19080"
+            - name: GHDASH_STATE_DIR
+              value: "/data"
+            - name: GHDASH_ALLOW_GH_CLI
+              value: "false"
+            - name: GH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: yana-chan-4k
+                  key: gh-token
+                  optional: true
+            - name: GITHUB_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: yana-chan-4k
+                  key: github-client-id
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 20m
+              memory: 48Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: state
+              mountPath: /data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: yana-chan-4k-state
+        - name: tmp
+          emptyDir: {}

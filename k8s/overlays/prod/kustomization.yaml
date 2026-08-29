@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: yana-chan-4k
+
+resources:
+  - ../../base
+
+patches:
+  - path: prod-storage.yaml
+
+# Replicas stay at 1. The state directory is a ReadWriteOnce volume holding the
+# session, so a second replica would not be able to mount it.
+#
+# The GitHub secret is NOT generated here. Create it out of band -- from a
+# sealed secret, an external-secrets ExternalSecret, or a one-off
+# `kubectl create secret` -- before applying this overlay.
+#
+#   name: yana-chan-4k
+#   keys: gh-token (optional), github-client-id (optional)
+#
+# Note that the pod holds a GitHub token and has no login of its own. Do not put
+# an Ingress in front of this overlay without an authenticating proxy.
+
+images:
+  - name: yana-chan-4k
+    newTag: v1.0.0

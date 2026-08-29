@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: yana-chan-4k-state
+spec:
+  resources:
+    requests:
+      storage: 1Gi
