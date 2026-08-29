@@ -106,6 +106,68 @@ export interface Board {
   warning?: string
 }
 
+/** One column of the dashboard's activity chart, one local calendar day. */
+export interface StatsDay {
+  /** YYYY-MM-DD in the server's zone. */
+  date: string
+  opened: number
+  merged: number
+  /** Distinct pull requests reviewed that day, not reviews submitted. */
+  reviewed: number
+}
+
+/** The little a highlight needs to link back to a pull request. */
+export interface PrRef {
+  repo: string
+  number: number
+  title: string
+  url: string
+}
+
+/** The week's superlatives. Each one is absent when the week had none. */
+export interface Highlights {
+  fastestMerge?: PrRef
+  fastestMinutes: number
+  biggestMerge?: PrRef
+  biggestLines: number
+  topRepo: string
+  topRepoCount: number
+}
+
+export interface StatsWeek {
+  days: number
+  since: string
+  until: string
+}
+
+export interface Stats {
+  login: string
+  week: StatsWeek
+  generatedAt: string
+
+  opened: number
+  merged: number
+  /** Closed without merging. */
+  closed: number
+  /** Distinct pull requests you reviewed. */
+  reviewed: number
+
+  reviewsWritten: number
+  approvals: number
+  repos: number
+  additions: number
+  deletions: number
+  filesChanged: number
+
+  kcal: number
+  activeDays: number
+  streak: number
+
+  daily: StatsDay[]
+  highlights: Highlights
+  warning?: string
+}
+
 export interface Suggestions {
   orgs: string[]
   teams: string[]

@@ -5,7 +5,8 @@ A pull request dashboard, and a love letter.
 The dashboard: a tabbed web version of the shell script this grew out of, which
 answered three questions with a `gh` search and a jq program. Same three
 questions, now one tab each, plus a tab for every team and organization you
-choose to follow.
+choose to follow — and a landing tab the script never had, which answers the
+one question a queue cannot: what did you actually get done this week.
 
 The love letter: this is a passion project, built as an ode to **八奈見杏菜 —
 Yanami Anna**, of *負けヒロインが多すぎる！* (*Too Many Losing Heroines!*). She is
@@ -17,6 +18,8 @@ The default theme is hers, taken from the official site's
 the vermillion, the yellow kcal tiles and the two typefaces are all its own.
 See [Themes](#themes) and [The ode](#the-ode).
 
+- **Your week** — the tab you land on: what you opened, merged, closed and
+  reviewed over the last seven days.
 - **Your open PRs** — did anyone comment inside the activity window?
 - **Review requested from you** — requested from you, or already reviewed by you.
 - **One tab per team** — pull requests where that team's review was requested.
@@ -94,6 +97,72 @@ GHDASH_ALLOWED_HOSTS=dash.example.internal make run
 ```
 
 `/api/health` is exempt, so Kubernetes probes can address the pod by IP.
+
+## Your week
+
+The tab the app opens on. Every other tab is a queue — things waiting for you —
+and this one is the opposite: a read-only look back at the last seven days.
+
+| Figure | Where it comes from |
+| --- | --- |
+| Opened | `author:you created:>=` the start of the window |
+| Merged | `author:you merged:>=` |
+| Closed | `author:you is:unmerged closed:>=` |
+| Reviewed | `reviewed-by:you -author:you`, then filtered to reviews you actually submitted inside the window |
+
+Under those: reviews written, approvals given, repositories touched, and the
+lines and files of everything merged. Then a strip per metric showing the seven
+days on one shared scale, and the week's superlatives — fastest merge, biggest
+merge, busiest repository, busiest day.
+
+The window is whole local days ending with today, not a rolling 168 hours. The
+chart draws a column per day and labels it with a weekday, so a window that
+began at 14:07 last Sunday would put two half-Sundays at its ends and make the
+first and last columns lie about themselves. `GET /api/stats?days=N` takes
+anything from 1 to 90; the tab asks for 7.
+
+Two details worth knowing before you read the numbers closely:
+
+- **Reviewed counts pull requests, the chart counts them per day.** The tile is
+  distinct branches you reviewed; a strip's column is distinct branches you
+  reviewed *that day*. Go back and forth on one branch across two days and the
+  strip sums to one more than the tile. Both are true, they just answer
+  different questions.
+- **Only submitted reviews count.** A review still open in your browser is
+  `PENDING` to GitHub and is not work delivered, so it is skipped.
+
+### The calorie figure
+
+The hero number is a calorie total, because `4K` is a calorie count and that is
+what this repository is named after. The weights live in one place,
+`backend/internal/stats/types.go`:
+
+| Event | kcal |
+| --- | --- |
+| Pull request opened | 200 |
+| Pull request merged | 400 |
+| Pull request closed unmerged | 100 |
+| Review written | 150 |
+| Approval given | 50 |
+
+They are arbitrary, deliberately: shipping beats opening, reviewing somebody
+else's branch counts for something, and a branch you closed unmerged still cost
+you the afternoon. Under the Yanami theme the total is set in the calorie
+meter's own yellow tile — see [The one exception](#the-one-exception).
+
+### How the chart is drawn
+
+Three strips, one per metric, over one shared scale, all in the theme's primary
+(`--fact`). That is a deliberate choice rather than a stacked bar: a stack would
+need three hues that stay tellable apart in all ten themes, including under
+colour-vision deficiency, and splitting the series into a strip each removes the
+question entirely. Each strip is a single series, so identity comes from its own
+label rather than from a colour, and every bar can use the one hue the
+[contrast audit](#how-a-theme-is-built) has already cleared on that surface.
+
+Hovering a day lights its column in all three strips and writes the figures into
+the chart's heading. The same numbers are in a table behind the plot, hidden
+visually and read out by assistive tech.
 
 ## Teams and organizations
 
@@ -352,14 +421,16 @@ Both are chosen to stay clear of the usual 8080/3000 crowd. Override with
 backend/
   cmd/server/          entry point
   internal/board/      the ported classification logic, with tests
-  internal/github/     GraphQL client and the batched PR search
+  internal/stats/      the weekly dashboard's reduction, with tests
+  internal/github/     GraphQL client and the batched PR and stats searches
   internal/ghcli/      gh CLI detection
   internal/ghauth/     OAuth device flow
   internal/api/        HTTP handlers, auth service
   internal/state/      settings and session persistence
   internal/webui/      embeds the built frontend
 frontend/
-  src/components/      AuthGate, TabBar, PrCard, SettingsPanel, ThemePicker, LocalePicker
+  src/components/      AuthGate, TabBar, PrCard, StatsPanel, WeekChart,
+                       SettingsPanel, ThemePicker, LocalePicker
   src/composables/     theme state
   src/i18n/            locale state and the English and Japanese catalogs
   src/styles/          theme tokens, the generated palettes, the calorie meter layer
@@ -376,15 +447,22 @@ make test    # go test ./... plus vue-tsc --noEmit
 ```
 
 The board tests cover the window rule for every weekday, bot detection, and
-each classification branch ported from the jq program. The api tests cover the
+each classification branch ported from the jq program. The stats tests cover the
+whole-day window, the day buckets in a non-UTC zone, the streak rule and which
+reviews count. The api tests cover the
 Host allowlist, the origin guard, the security headers and the settings
 validator; the state tests cover the `0600` file modes, the atomic write and
 the tolerance for a corrupt session file.
 
 ## Notes
 
-- One GraphQL request per refresh: every tab's search is batched into a single
-  aliased query, so adding teams and orgs does not multiply round trips.
+- One GraphQL request per refresh, per endpoint: every tab's search is batched
+  into a single aliased query, so adding teams and orgs does not multiply round
+  trips. The board and the week are two such requests, issued in parallel.
+- The week uses its own, lighter fragment. The board needs comments and review
+  threads to answer "who said what"; the week needs merge stamps and a diff
+  size, and would otherwise pay for thirty comments per pull request that
+  nothing reads.
 - No LLM is called anywhere in this project.
 - Light theme only, by design. No dark mode toggle.
 - State lives under `yana-chan-4k` in your config directory. If a

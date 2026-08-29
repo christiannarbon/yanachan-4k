@@ -11,6 +11,15 @@ const { t, sectionTitle } = useI18n()
 <template>
   <nav class="tabs" role="tablist">
     <button
+      role="tab"
+      class="tab tab-dashboard"
+      :class="{ 'tab-active': activeId === 'dashboard' }"
+      :aria-selected="activeId === 'dashboard'"
+      @click="emit('select', 'dashboard')"
+    >
+      {{ t.sections.dashboard }}
+    </button>
+    <button
       v-for="section in sections"
       :key="section.id"
       role="tab"
@@ -93,4 +102,7 @@ const { t, sectionTitle } = useI18n()
   background: var(--dim);
 }
 .tab-settings { margin-left: auto; }
+/* The landing tab is a heading, not a count, so it carries no badge; the rule
+   keeps it from sitting flush against the first section tab. */
+.tab-dashboard { margin-right: 6px; }
 </style>

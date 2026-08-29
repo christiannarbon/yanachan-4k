@@ -1,4 +1,13 @@
-import type { AuthStatus, Board, DevicePoll, DeviceStart, SessionView, Settings, Suggestions } from './types'
+import type {
+  AuthStatus,
+  Board,
+  DevicePoll,
+  DeviceStart,
+  SessionView,
+  Settings,
+  Stats,
+  Suggestions,
+} from './types'
 
 export class ApiError extends Error {
   status: number
@@ -43,6 +52,8 @@ export const api = {
   settings: () => request<Settings>('/api/settings'),
   saveSettings: (s: Settings) => request<Settings>('/api/settings', { method: 'PUT', body: JSON.stringify(s) }),
   suggestions: () => request<Suggestions>('/api/suggestions'),
+
+  stats: () => request<Stats>('/api/stats'),
 
   board: (opts: { onlyActive?: boolean } = {}) => {
     const params = new URLSearchParams()
