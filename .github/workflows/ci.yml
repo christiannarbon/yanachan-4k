@@ -278,7 +278,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
       # Built, never pushed. This job answers "does the multi-stage build still
       # work", which is a different question from anything the jobs above ask:
