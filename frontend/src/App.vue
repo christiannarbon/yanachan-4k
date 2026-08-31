@@ -2,16 +2,18 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AuthGate from './components/AuthGate.vue'
 import CornerControls from './components/CornerControls.vue'
-import PrCard from './components/PrCard.vue'
+import RepoGroup from './components/RepoGroup.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import StatsPanel from './components/StatsPanel.vue'
 import TabBar from './components/TabBar.vue'
+import { groupByRepo, useRepoGroups } from './composables/useRepoGroups'
 import Msg from './i18n/Msg.vue'
 import { useI18n } from './i18n'
 import { ApiError, api } from './lib/api'
 import type { AuthStatus, Board, Settings, Stats } from './lib/types'
 
 const { t, ago, stamp, sectionTitle, windowLabel } = useI18n()
+const { isCollapsed, toggle: toggleRepo, setAll: setAllRepos } = useRepoGroups()
 
 /** Tabs that are not board sections, so a reload never navigates away from
  *  them even when the section list changes underneath. */
@@ -139,6 +141,20 @@ const currentSection = computed(() => board.value?.sections.find((s) => s.id ===
 const showUrls = computed(() => settings.value?.showUrls ?? true)
 const totalHot = computed(() => board.value?.sections.reduce((sum, s) => sum + s.hot, 0) ?? 0)
 
+/** The visible queue, split by repository. Empty on the two fixed tabs. */
+const repoGroups = computed(() => groupByRepo(currentSection.value?.entries ?? []))
+/** Drives the one button: it offers whichever move is still available. */
+const allCollapsed = computed(
+  () => repoGroups.value.length > 0 && repoGroups.value.every((g) => isCollapsed(g.repo)),
+)
+
+function toggleAllGroups() {
+  setAllRepos(
+    repoGroups.value.map((g) => g.repo),
+    !allCollapsed.value,
+  )
+}
+
 async function toggleOnlyActive() {
   if (!settings.value) return
   const next = { ...settings.value, onlyActive: !settings.value.onlyActive }
@@ -226,28 +242,40 @@ async function toggleOnlyActive() {
 
         <template v-else-if="currentSection">
           <div class="section-head">
-            <h2>{{ sectionTitle(currentSection) }}</h2>
-            <p class="soft">
-              {{ t.board.prCount(currentSection.total) }}
-              <template v-if="currentSection.hot > 0">
-                · {{ t.board.needingAttention(currentSection.hot) }}
-              </template>
-              <template v-if="settings.onlyActive && currentSection.total !== currentSection.entries.length">
-                · {{ t.board.hiddenAsQuiet(currentSection.total - currentSection.entries.length) }}
-              </template>
-            </p>
+            <div>
+              <h2>{{ sectionTitle(currentSection) }}</h2>
+              <p class="soft">
+                {{ t.board.prCount(currentSection.total) }}
+                <template v-if="repoGroups.length > 1">
+                  · {{ t.board.repoCount(repoGroups.length) }}
+                </template>
+                <template v-if="currentSection.hot > 0">
+                  · {{ t.board.needingAttention(currentSection.hot) }}
+                </template>
+                <template v-if="settings.onlyActive && currentSection.total !== currentSection.entries.length">
+                  · {{ t.board.hiddenAsQuiet(currentSection.total - currentSection.entries.length) }}
+                </template>
+              </p>
+            </div>
+            <button v-if="repoGroups.length > 1" class="ghost fold-all" @click="toggleAllGroups">
+              {{ allCollapsed ? t.board.expandAll : t.board.collapseAll }}
+            </button>
           </div>
 
           <p v-if="currentSection.error" class="notice">{{ currentSection.error }}</p>
 
-          <div v-if="currentSection.entries.length" class="list">
-            <PrCard
-              v-for="entry in currentSection.entries"
-              :key="entry.url"
-              :entry="entry"
+          <div v-if="repoGroups.length" class="groups">
+            <RepoGroup
+              v-for="group in repoGroups"
+              :key="group.repo"
+              :repo="group.repo"
+              :entries="group.entries"
+              :hot="group.hot"
+              :collapsed="isCollapsed(group.repo)"
               :kind="currentSection.kind"
               :show-url="showUrls"
               :now="now"
+              @toggle="toggleRepo(group.repo)"
             />
           </div>
           <p v-else class="card empty-state soft">
@@ -321,11 +349,20 @@ async function toggleOnlyActive() {
   padding: 20px;
   flex: 1 1 auto;
 }
-.section-head { margin-bottom: 14px; }
+.section-head {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 .section-head h2 { margin: 0; font-size: 15px; color: var(--heading); }
 .section-head p { margin: 2px 0 0; font-size: 12.5px; }
+.fold-all { font-size: 12.5px; white-space: nowrap; }
 
-.list { display: flex; flex-direction: column; gap: 10px; }
+/* Each group spaces itself from the one above, so this only stacks them. */
+.groups { display: flex; flex-direction: column; }
 .empty-state { padding: 28px; text-align: center; }
 .foot { margin-top: 28px; font-size: 12px; text-align: center; }
 </style>

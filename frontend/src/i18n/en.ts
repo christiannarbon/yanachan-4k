@@ -65,9 +65,14 @@ const en = {
     summary: '{login} · window: {label} (since {stamp})',
     needingAttention: (n: number) => `${n} needing attention`,
     prCount: (n: number) => `${n} pull request${n === 1 ? '' : 's'}`,
+    /** Follows `prCount` in the section head, once a queue spans repositories. */
+    repoCount: (n: number) => `${n} repositor${n === 1 ? 'y' : 'ies'}`,
     hiddenAsQuiet: (n: number) => `${n} hidden as quiet`,
     showingActiveOnly: 'Showing active only',
     showingEverything: 'Showing everything',
+    /** The one button that folds every repository group away, and unfolds them. */
+    collapseAll: 'Collapse all',
+    expandAll: 'Expand all',
     autoRefresh: 'Auto refresh',
     refresh: 'Refresh',
     refreshing: 'Refreshing',

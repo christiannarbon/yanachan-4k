@@ -3,7 +3,17 @@ import { computed } from 'vue'
 import { useI18n } from '../i18n'
 import type { Entry } from '../lib/types'
 
-const props = defineProps<{ entry: Entry; showUrl: boolean; now: number; kind: string }>()
+const props = withDefaults(
+  defineProps<{
+    entry: Entry
+    showUrl: boolean
+    now: number
+    kind: string
+    /** Off inside a repository group, whose heading already names the repo. */
+    showRepo?: boolean
+  }>(),
+  { showRepo: true },
+)
 
 const { t, ago, actors } = useI18n()
 
@@ -102,7 +112,7 @@ const tone = computed(() => (props.entry.hot ? 'hot' : props.entry.active ? 'act
       <span class="badge" :class="entry.status === 'reply' ? 'badge-orange' : 'badge-green'" v-if="statusLabel">
         {{ statusLabel }}
       </span>
-      <span class="repo mono">{{ entry.repo }}</span>
+      <span class="repo mono" v-if="showRepo">{{ entry.repo }}</span>
       <span class="num mono">#{{ entry.number }}</span>
       <a class="title" :href="entry.url" target="_blank" rel="noopener noreferrer">{{ entry.title }}</a>
       <span class="badge badge-neutral" v-if="entry.isDraft">{{ t.pr.draft }}</span>

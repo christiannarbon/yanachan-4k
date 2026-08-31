@@ -8,9 +8,10 @@ that outlives a component fits in two modules.
 
 ```
 frontend/
-  src/components/      AuthGate, TabBar, PrCard, StatsPanel, WeekChart,
-                       SettingsPanel, ThemePicker, LocalePicker, CornerControls
-  src/composables/     useTheme
+  src/components/      AuthGate, TabBar, RepoGroup, PrCard, StatsPanel,
+                       WeekChart, SettingsPanel, ThemePicker, LocalePicker,
+                       CornerControls
+  src/composables/     useTheme, useRepoGroups
   src/i18n/            useI18n, Msg.vue, and the en / ja catalogs
   src/styles/          theme tokens, the generated palettes, the calorie meter layer
   src/lib/             API client, types, time helpers
@@ -37,19 +38,26 @@ stale on a tab left open.
 `FIXED_TABS` (`dashboard`, `settings`) exist so a reload never navigates away
 from a tab when the section list changes underneath it.
 
-## The two pieces of global state
+## The three pieces of global state
 
-Both are module-level refs with a `localStorage` mirror, both readable from any
-component, neither of them a store library.
+All three are module-level refs with a `localStorage` mirror, all readable from
+any component, none of them a store library.
 
 | Module | Holds | Key |
 | --- | --- | --- |
 | `composables/useTheme.ts` | the active theme, written to `[data-art]` on the root | `yana.art` |
 | `i18n/index.ts` | the active locale and the catalog it selects | `yana.locale` |
+| `composables/useRepoGroups.ts` | which repository groups the viewer has folded away | `yana.collapsedRepos` |
 
-Both read a pre-rename key as a fallback and both wrap every `localStorage`
-access in `try/catch` — private windows and blocked site data throw rather than
-returning null.
+The first two read a pre-rename key as a fallback. All three wrap every
+`localStorage` access in `try/catch` — private windows and blocked site data
+throw rather than returning null.
+
+The folded set is keyed by repository and not by section, which is the whole
+point of it: a repository folded away on one queue is folded on all of them.
+`groupByRepo` in the same module does the splitting, and it rearranges without
+re-ranking — a group takes the position of its first entry, and entries keep
+their order inside it, so the board's sort survives the regrouping.
 
 Theme webfonts are loaded lazily, on first selection, so nine of the ten
 palettes cost nothing until someone tries them.
@@ -62,6 +70,7 @@ palettes cost nothing until someone tries them.
 | `TabBar` | the tab strip, including the per-team and per-org tabs |
 | `StatsPanel` | the week's tiles, the calorie figure, the superlatives |
 | `WeekChart` | three strips over one shared scale, plus the visually-hidden table |
+| `RepoGroup` | one repository's cards under a heading that folds them away |
 | `PrCard` | one pull request: indicators, the left border, the actors line |
 | `SettingsPanel` | teams, orgs, view settings, session |
 | `ThemePicker` / `LocalePicker` | the two pickers |
