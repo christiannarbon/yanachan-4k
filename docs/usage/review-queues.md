@@ -32,6 +32,22 @@ Override it with a fixed number of hours in Settings — the equivalent of the
 script's `--hours`. The exact arithmetic is in
 [activity window](../tech/low-level-design/activity-window.md).
 
+## Grouped by repository
+
+A queue is drawn as one group per repository rather than one long column. Each
+heading carries the repository's name, how many of its pull requests are on the
+tab, and the attention dot if any of them need you.
+
+Click a heading to fold that repository away. Folds are remembered per browser
+and shared across the tabs, so a repository you would rather not look at stays
+folded on every queue and after a reload. **Collapse all**, beside the tab's
+own heading, folds every group at once — and becomes **Expand all** once they
+all are.
+
+Grouping rearranges the list without re-ranking it. A group takes the position
+of its first pull request and the order inside a group is untouched, so the
+sort still holds: the repository you are needed in leads the page.
+
 ## Indicators
 
 | Indicator | Meaning |
