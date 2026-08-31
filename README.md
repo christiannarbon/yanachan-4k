@@ -1,6 +1,6 @@
 <h1 align="center">Yana-chan 4K</h1>
 
-<p align="center">A pull request dashboard, and a love letter.</p>
+<p align="center">A pull request dashboard.</p>
 
 <p align="center">
   <img alt="Go 1.24" src="https://img.shields.io/badge/Go-1.24-00ADD8?style=flat-square&logo=go&logoColor=white">
@@ -28,10 +28,10 @@ questions, now one tab each, plus a tab for every team and organization you
 choose to follow — and a landing tab the script never had, which answers the one
 question a queue cannot: what did you actually get done this week.
 
-The love letter: this is a passion project, built as an ode to **八奈見杏菜 —
+This is a passion project, built as an ode to **八奈見杏菜 —
 Yanami Anna**, of *負けヒロインが多すぎる！* (*Too Many Losing Heroines!*). She is
 the patron saint of eating your feelings and losing with style, and she is why
-this repository is named the way it is. The `4K` is a calorie count.
+this repository is named the way it is. The `4K` came from 温水くん.
 
 ## The tabs
 
@@ -44,25 +44,6 @@ this repository is named the way it is. The `4K` is a calorie count.
   not already on another tab.
 
 Go backend, Vue 3 frontend, one binary, two languages, ten light themes.
-
-## Quick start
-
-```sh
-make deps      # install Go modules and npm packages
-make run       # build everything, serve on http://127.0.0.1:19080
-```
-
-Open <http://127.0.0.1:19080>. The first screen asks how you want to
-authenticate. Nothing is followed and no token is read until you say so.
-
-```sh
-make dev       # hot reloading: backend on 19080, vite on 19090
-make test      # go test ./... plus vue-tsc --noEmit
-make down      # stop everything
-make help      # every target
-```
-
-`make doctor` checks the toolchain.
 
 ## Documentation
 
@@ -104,7 +85,26 @@ Everything lives in [`docs/`](docs/).
   directory is still there from before and the new one is not, that one keeps
   being used, so upgrading does not quietly orphan a stored session.
 
-## The ode
+  ## Quick start
+
+```sh
+make deps      # install Go modules and npm packages
+make run       # build everything, serve on http://127.0.0.1:19080
+```
+
+Open <http://127.0.0.1:19080>. The first screen asks how you want to
+authenticate. Nothing is followed and no token is read until you say so.
+
+```sh
+make dev       # hot reloading: backend on 19080, vite on 19090
+make test      # go test ./... plus vue-tsc --noEmit
+make down      # stop everything
+make help      # every target
+```
+
+`make doctor` checks the toolchain.
+
+## THIS IS ME JUST DOING SOME STORY TELLING
 
 There is no practical reason a tool that answers "did anyone reply to my pull
 requests" should be named after a fictional high schooler who cannot stop
@@ -124,10 +124,6 @@ the vermillion, the yellow kcal tiles and the two typefaces are all its own. How
 it is put together, and the one file in the project allowed to know a theme's
 name, is in [themes](docs/usage/themes.md) and
 [the theming system](docs/tech/low-level-design/theming-system.md).
-
-This is for her. Everything else here — the batched GraphQL, the contrast
-generator, the Kubernetes overlays — is scaffolding around the part where the
-tab counter is a calorie counter.
 
 ---
 
