@@ -31,7 +31,16 @@ updates:
     schedule:
       interval: monthly
     groups:
+      # Minor and patch only. A major is the one update that needs reading
+      # rather than merging, and grouping it means a single unmergeable major
+      # holds every other update in the batch hostage -- which is exactly what
+      # happened when typescript 7 arrived here and could not build, because
+      # vue-tsc still resolves `typescript/lib/tsc` and 7 no longer exports it.
+      # Outside the group, a major arrives on its own and blocks nothing else.
       frontend:
         patterns: ["*"]
+        update-types:
+          - minor
+          - patch
     commit-message:
       prefix: build
