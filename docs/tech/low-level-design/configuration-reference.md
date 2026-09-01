@@ -33,7 +33,7 @@ first screen before it is used.
 
 | Variable | Default | Effect |
 | --- | --- | --- |
-| `GHDASH_LIMIT` | `25` | starting value for the per-query pull request cap. Once settings are saved, `settings.json` wins |
+| `GHDASH_LIMIT` | `25` | starting value for the per-query pull request cap on the board's queues. Once settings are saved, `settings.json` wins |
 
 ## Parsing
 

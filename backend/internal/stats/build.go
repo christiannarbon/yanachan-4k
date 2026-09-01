@@ -17,11 +17,13 @@ const DefaultDays = 7
 // a year of history inside a request the browser is waiting on.
 const MaxDays = 90
 
+// Request is who the week is for, and how much of it. There is no page size
+// here on purpose: the counts have to cover the whole window, so the searches
+// page themselves and the board's display limit has no say over them.
 type Request struct {
 	Login string
 	Days  int
 	Now   time.Time
-	Limit int
 }
 
 // ResolveWeek returns whole local days ending with the one now falls in.
@@ -47,7 +49,7 @@ func ResolveWeek(now time.Time, days int) Week {
 
 const searchBase = "is:pr"
 
-// Build runs the week's four searches in one round trip and reduces them.
+// Build runs the week's four searches and reduces them.
 func Build(ctx context.Context, cl *github.Client, req Request) (*Stats, error) {
 	me := req.Login
 	week := ResolveWeek(req.Now, req.Days)
@@ -62,7 +64,7 @@ func Build(ctx context.Context, cl *github.Client, req Request) (*Stats, error) 
 		{Alias: "reviewed", Search: fmt.Sprintf("%s reviewed-by:%s -author:%s updated:>=%s", searchBase, me, me, since)},
 	}
 
-	results, err := cl.BatchStatSearch(ctx, queries, req.Limit)
+	results, err := cl.BatchStatSearch(ctx, queries)
 	if err != nil && len(results) == 0 {
 		return nil, err
 	}

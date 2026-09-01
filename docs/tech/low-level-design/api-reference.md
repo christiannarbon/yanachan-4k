@@ -166,6 +166,9 @@ for the tabs that resolved.
 | --- | --- | --- |
 | `days` | 1–90 | 7 |
 
+`days` is the whole request. `settings.limit` does not apply here: the searches
+page themselves until the window is covered.
+
 ```json
 {
   "login": "octocat",

@@ -23,9 +23,14 @@ becomes 90. The API accepts `?days=N` in `1..90`; the tab asks for 7.
 `Since` is formatted `RFC3339` into the search qualifiers, so the day boundaries
 GitHub filters on are the ones the chart draws.
 
+The window is the only bound on the request. `Request` carries no page size,
+because a total has to cover all of its window — see
+[the week pages, the board does not](graphql-batching.md#the-week-pages-the-board-does-not).
+
 ## The four searches
 
-One batched round trip, over the lighter `PRStat` fragment:
+One batched round trip over the lighter `PRStat` fragment, paged to the end of
+the window:
 
 | Alias | Query |
 | --- | --- |
@@ -34,9 +39,11 @@ One batched round trip, over the lighter `PRStat` fragment:
 | `closed` | `is:pr author:me is:unmerged closed:>=SINCE` |
 | `reviewed` | `is:pr reviewed-by:me -author:me updated:>=SINCE` |
 
-Every result is re-checked against the window in Go with `inWeek`, which
-excludes both edges. GitHub's `>=SINCE` is a coarse filter; the exact bucket is
-decided here, in the server's zone.
+Each alias is paged until GitHub runs out of results for it, so a week busier
+than one page is counted rather than sampled. Every result is then re-checked
+against the window in Go with `inWeek`, which excludes both edges. GitHub's
+`>=SINCE` is a coarse filter; the exact bucket is decided here, in the server's
+zone.
 
 `reviewed` searches on `updated:` rather than a review timestamp, because there
 is no search qualifier for "reviewed on". A pull request you reviewed three
