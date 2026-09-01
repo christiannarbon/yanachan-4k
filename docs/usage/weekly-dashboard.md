@@ -71,9 +71,10 @@ strip is a single series, so identity comes from its own label rather than from
 a colour, and every bar can use the one hue the contrast audit has already
 cleared on that surface.
 
-Hovering a day lights its column in all three strips and writes the figures into
-the chart's heading. The same numbers are in a table behind the plot, hidden
-visually and read out by assistive technology.
+Hovering a day lights its column in all three strips and names the figures in a
+tooltip above that column, which slides back inside the card at the first and
+last day rather than hanging off it. The same numbers are in a table behind the
+plot, hidden visually and read out by assistive technology.
 
 The reduction behind all of this is documented in
 [weekly stats](../tech/low-level-design/weekly-stats.md).
