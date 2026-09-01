@@ -359,8 +359,6 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
-	settings := s.store.Settings()
-
 	days := stats.DefaultDays
 	if v := intParam(r, "days"); v > 0 && v <= stats.MaxDays {
 		days = v
@@ -370,7 +368,6 @@ func (s *Server) handleStats(w http.ResponseWriter, r *http.Request) {
 		Login: sess.Login,
 		Days:  days,
 		Now:   time.Now(),
-		Limit: settings.Limit,
 	})
 	if err != nil {
 		status := http.StatusBadGateway
