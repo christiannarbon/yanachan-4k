@@ -14,13 +14,15 @@
  * rows comparable, and reviewing five branches should look like more than
  * merging one.
  *
- * Hovering a day lights that column in all three rows and writes the day's
- * figures into the heading, rather than floating a box over the bars. Three
- * short rows leave a tooltip nowhere to go that is not on top of the data,
- * and a readout in the heading needs no positioning, never clips, and cannot
- * hang off the edge of the plot at the first or last column.
+ * Hovering a day lights that column in all three rows and names the figures in
+ * a tooltip pinned above that column. The figures used to sit in the heading
+ * instead, which put them beside the caption on a wide card and under it on a
+ * narrow one -- the same hover landing in two different places. A band of its
+ * own above the plot fixes where they appear: the box is measured and slid
+ * back inside the plot at the first and last column, so it never hangs off
+ * the card and never covers the bars it is describing.
  */
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useI18n } from '../i18n'
 import type { StatsDay } from '../lib/types'
 
@@ -30,6 +32,17 @@ const { t, weekday, day, num } = useI18n()
 
 /** Which day the pointer is on, lighting that column across all three rows. */
 const hover = ref<number | null>(null)
+
+const band = ref<HTMLElement | null>(null)
+const tip = ref<HTMLElement | null>(null)
+
+/** Everything below is measured in pixels from the left edge of the band. */
+const column = ref(0)
+const tipLeft = ref(0)
+const arrowLeft = ref(0)
+/** The box is hidden until it has been measured, so it never shows up at the
+ *  left edge for a frame before sliding under its column. */
+const placed = ref(false)
 
 type Row = { key: string; label: string; get: (d: StatsDay) => number }
 
@@ -54,29 +67,62 @@ function height(value: number): string {
 }
 
 const hovered = computed(() => (hover.value === null ? null : (props.days[hover.value] ?? null)))
+
+async function enter(i: number, event: MouseEvent) {
+  hover.value = i
+  const slot = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const box = band.value?.getBoundingClientRect()
+  if (!box) return
+  column.value = slot.left + slot.width / 2 - box.left
+  await nextTick()
+  place()
+}
+
+function leave() {
+  hover.value = null
+  placed.value = false
+}
+
+/** Centre the box on its column, then pull it back inside the band if that
+ *  would push it off either end. The arrow stays on the column either way. */
+function place() {
+  const width = tip.value?.offsetWidth
+  const room = band.value?.clientWidth
+  if (!width || !room) return
+  tipLeft.value = Math.max(0, Math.min(column.value - width / 2, room - width))
+  arrowLeft.value = Math.min(Math.max(column.value - tipLeft.value, 12), width - 12)
+  placed.value = true
+}
 </script>
 
 <template>
   <figure class="chart">
     <figcaption class="chart-head">
-      <div class="chart-titles">
-        <h3>{{ t.dashboard.chartTitle }}</h3>
-        <p class="soft">{{ t.dashboard.chartNote }}</p>
-      </div>
-      <!-- Always rendered, so the heading does not reflow on hover. -->
-      <p class="readout" :class="{ 'readout-on': hovered }">
-        <template v-if="hovered">
-          <strong>{{ day(hovered.date) }}</strong>
-          <span>{{ t.dashboard.opened }} {{ num(hovered.opened) }}</span>
-          <span>{{ t.dashboard.merged }} {{ num(hovered.merged) }}</span>
-          <span>{{ t.dashboard.reviewed }} {{ num(hovered.reviewed) }}</span>
-        </template>
-      </p>
+      <h3>{{ t.dashboard.chartTitle }}</h3>
+      <p class="soft">{{ t.dashboard.chartNote }}</p>
     </figcaption>
 
     <p v-if="empty" class="chart-empty soft">{{ t.dashboard.chartEmpty }}</p>
 
-    <div v-else class="plot" @mouseleave="hover = null">
+    <!-- The band is kept clear whether or not a day is hovered, so the tooltip
+         has somewhere to sit that is neither on the bars nor on the caption. -->
+    <div v-if="!empty" ref="band" class="tip-band">
+      <div
+        v-if="hovered"
+        ref="tip"
+        class="tip"
+        :class="{ 'tip-on': placed }"
+        :style="{ transform: `translateX(${tipLeft}px)` }"
+      >
+        <strong>{{ day(hovered.date) }}</strong>
+        <span>{{ t.dashboard.opened }} {{ num(hovered.opened) }}</span>
+        <span>{{ t.dashboard.merged }} {{ num(hovered.merged) }}</span>
+        <span>{{ t.dashboard.reviewed }} {{ num(hovered.reviewed) }}</span>
+        <span class="tip-arrow" :style="{ left: `${arrowLeft}px` }"></span>
+      </div>
+    </div>
+
+    <div v-if="!empty" class="plot" @mouseleave="leave">
       <template v-for="row in rows" :key="row.key">
         <span class="row-label">{{ row.label }}</span>
         <div class="track">
@@ -85,7 +131,7 @@ const hovered = computed(() => (hover.value === null ? null : (props.days[hover.
             :key="d.date"
             class="slot"
             :class="{ lit: hover === i }"
-            @mouseenter="hover = i"
+            @mouseenter="enter(i, $event)"
           >
             <span
               class="bar"
@@ -130,39 +176,61 @@ const hovered = computed(() => (hover.value === null ? null : (props.days[hover.
 <style scoped>
 .chart { margin: 0; flex: 1 1 340px; min-width: 0; }
 
-.chart-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.chart-titles h3 { margin: 0; font-size: 14px; color: var(--heading); }
-.chart-titles p { margin: 2px 0 0; font-size: 12.5px; }
-
-/* The hover readout. It keeps its box whether or not a day is under the
-   pointer, so lighting a column never nudges the heading around. */
-.readout {
-  margin: 0;
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 2px 10px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  font-size: 11.5px;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.readout-on { border-color: var(--border); background: var(--bg-sunken); }
-.readout strong { color: var(--heading); font-weight: 600; }
+.chart-head h3 { margin: 0; font-size: 14px; color: var(--heading); }
+.chart-head p { margin: 2px 0 0; font-size: 12.5px; }
 
 .chart-empty { margin: 18px 0 0; }
 
+/* The tooltip's own strip of the card. Reserving it costs a line of height
+   and buys a hover that always lands in the same place. */
+.tip-band { position: relative; height: 34px; margin-top: 10px; }
+
+/* Anchored by its bottom edge, so a box that wraps on a narrow card grows up
+   into the caption rather than down over the first row of bars. Slid along by
+   a transform rather than by `left`: an absolute box sizes itself against the
+   room left of the band's right edge, so moving it with `left` would change
+   the very width the move was measured from. */
+.tip {
+  position: absolute;
+  left: 0;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  max-width: 100%;
+  /* The box sits above the columns it reads from; it must never take the
+     pointer off one of them. */
+  pointer-events: none;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  opacity: 0;
+}
+.tip-on { opacity: 1; }
+.tip span { white-space: nowrap; }
+.tip strong { color: var(--heading); font-weight: 600; }
+
+/* The nib: a square turned on its corner, with only the two lower edges
+   stroked, so its fill covers the box's own border where the two meet. */
+.tip-arrow {
+  position: absolute;
+  top: 100%;
+  width: 7px;
+  height: 7px;
+  margin: -4px 0 0 -4px;
+  border: 1px solid var(--border);
+  border-top: 0;
+  border-left: 0;
+  background: var(--bg-sunken);
+  transform: rotate(45deg);
+}
+
 .plot {
-  margin-top: 16px;
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: end;
