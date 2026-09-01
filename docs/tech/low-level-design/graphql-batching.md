@@ -2,7 +2,8 @@
 
 `backend/internal/github/search.go`, `stats.go`, `client.go`
 
-One refresh is two GraphQL requests, however many tabs you follow.
+One refresh is two GraphQL requests, however many tabs you follow — plus a
+follow-up page for any stats search with more than 100 results in the window.
 
 ## The problem
 
@@ -53,7 +54,8 @@ request that nothing ever reads.
 and decode as zero values into the PR struct. Both batch functions drop any node
 with `Number == 0 || URL == ""`.
 
-Results are then sorted by `UpdatedAt` descending in Go. GitHub is already asked
+Results are then sorted in Go — by `UpdatedAt` descending for the board, by
+`CreatedAt` descending for the week. GitHub is already asked
 for `sort:updated-desc`, but the batch functions are also used by callers that
 do not set it, and the board's own ranking sorts stably on top of this.
 
@@ -96,11 +98,33 @@ is the one people can act on.
 
 ## Limits
 
-`first: $n` is the per-search limit from settings, 1–100, default 25. It is
-per tab, not in total: ten teams at 25 is 250 pull requests in one response.
-`state.MaxRefs` caps teams and orgs at 200 each, because each one is another
-aliased sub-query inside a single document and an unbounded list turns every
-refresh into one enormous request.
+For the board, `first: $n` is the per-search limit from settings, 1–100, default
+25. It is per tab, not in total: ten teams at 25 is 250 pull requests in one
+response. `state.MaxRefs` caps teams and orgs at 200 each, because each one is
+another aliased sub-query inside a single document and an unbounded list turns
+every refresh into one enormous request.
 
-There is no pagination. A tab shows the most recently updated `n`, which is what
-a queue needs; going further back is what GitHub's own search page is for.
+The board does not paginate. A tab shows the most recently updated `n`, which is
+what a queue needs; going further back is what GitHub's own search page is for.
+
+## The week pages, the board does not
+
+`BatchStatSearch` asks for 100 — GraphQL's per-connection maximum — and keeps
+going while `pageInfo.hasNextPage` is true, up to `statMaxPages` (5) per alias:
+
+```graphql
+query($n:Int!, $q0:String!, $c0:String) {
+  opened: search(query:$q0, type:ISSUE, first:$n, after:$c0) {
+    pageInfo { hasNextPage endCursor }
+    nodes { ...StatBits }
+  }
+}
+```
+
+Every page after the first carries only the aliases that said they had more, so
+an ordinary week is still one round trip.
+
+A count is not a queue: an incomplete page of a queue is a shorter list, while
+an incomplete page of a week is a chart claiming you did nothing on Tuesday.
+That asymmetry is the whole reason one of these paginates and the other does
+not, and it is what the display limit used to break when the week borrowed it.

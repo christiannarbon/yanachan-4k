@@ -27,7 +27,7 @@ Also offered as suggestions, also capped at 200.
 
 | Control | Effect |
 | --- | --- |
-| **Pull requests per query** | 1 to 100, the equivalent of the script's `--limit`. This is per tab, not in total. |
+| **Pull requests per query** | 1 to 100, the equivalent of the script's `--limit`. This is per queue tab, not in total, and it does not touch Your Week. |
 | **Activity window** | Hours, 0 to 720. Leave it at 0 for the [business-day rule](review-queues.md#the-activity-window). |
 | **Hide pull requests with no new activity** | drops the quiet ones from every queue |
 | **Show the full URL under each pull request** | on by default |
