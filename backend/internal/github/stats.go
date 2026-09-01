@@ -2,7 +2,9 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -41,34 +43,112 @@ type PullRequestStat struct {
 	} `json:"reviews"`
 }
 
+// statSearchResult is one page of one alias.
 type statSearchResult struct {
+	PageInfo struct {
+		HasNextPage bool   `json:"hasNextPage"`
+		EndCursor   string `json:"endCursor"`
+	} `json:"pageInfo"`
 	Nodes []PullRequestStat `json:"nodes"`
 }
 
-// BatchStatSearch runs every query in a single GraphQL request over the
-// lighter StatBits fragment, with the same partial-failure contract as
-// BatchSearch: the aliases that resolved come back alongside the error.
-func (c *Client) BatchStatSearch(ctx context.Context, queries []Query, limit int) (map[string][]PullRequestStat, error) {
+// statPage is how many pull requests one page asks for: GraphQL's own
+// per-connection maximum, so a normal week is still a single round trip.
+const statPage = 100
+
+// statMaxPages bounds one alias. Ninety days of a very busy account is the
+// worst case, and an unbounded walk sits inside a request the browser is
+// waiting on.
+const statMaxPages = 5
+
+// buildStatBatch is buildBatch with a cursor per alias, so each search can be
+// carried on from where its last page stopped. The board has no use for this:
+// a queue wants the top of the list, while the week has to count all of it.
+func buildStatBatch(queries []Query, after map[string]string) (string, map[string]any) {
+	params := []string{"$n:Int!"}
+	fields := make([]string, 0, len(queries))
+	vars := map[string]any{"n": statPage}
+	for i, q := range queries {
+		name, cursor := fmt.Sprintf("q%d", i), fmt.Sprintf("c%d", i)
+		params = append(params, "$"+name+":String!", "$"+cursor+":String")
+		fields = append(fields, fmt.Sprintf(
+			"  %s: search(query:$%s, type:ISSUE, first:$n, after:$%s) { pageInfo { hasNextPage endCursor } nodes { ...StatBits } }",
+			q.Alias, name, cursor))
+		vars[name] = q.Search
+		// A nil cursor is the first page; GraphQL takes `after: null` happily.
+		if c := after[q.Alias]; c != "" {
+			vars[cursor] = c
+		} else {
+			vars[cursor] = nil
+		}
+	}
+	return fmt.Sprintf("query(%s) {\n%s\n}\n%s", strings.Join(params, ", "), strings.Join(fields, "\n"), statBits), vars
+}
+
+// BatchStatSearch runs every query over the lighter StatBits fragment and
+// pages each one to the end of its window.
+//
+// Paging is the whole point. A single page would hand back whatever slice of
+// the week GitHub felt like returning first, and the chart would then draw
+// empty columns for days that were not empty at all -- the busier the week,
+// the more of it went missing. Every page after the first only carries the
+// aliases that said they had more, so the common week is one round trip and
+// only a genuinely busy one costs a second.
+//
+// Same partial-failure contract as BatchSearch: the aliases that resolved come
+// back alongside the error. An alias that fails on some page keeps what it had
+// and stops there.
+func (c *Client) BatchStatSearch(ctx context.Context, queries []Query) (map[string][]PullRequestStat, error) {
 	out := map[string][]PullRequestStat{}
 	if len(queries) == 0 {
 		return out, nil
 	}
 
-	doc, vars := buildBatch(queries, statBits, "StatBits", limit)
+	pending := queries
+	cursors := map[string]string{}
+	var failure error
 
-	var data map[string]statSearchResult
-	err := c.Do(ctx, doc, vars, &data)
-	for alias, res := range data {
-		prs := make([]PullRequestStat, 0, len(res.Nodes))
-		for _, pr := range res.Nodes {
-			// Search returns a union; non-PR nodes decode as zero values.
-			if pr.Number == 0 || pr.URL == "" {
+	for page := 0; page < statMaxPages && len(pending) > 0; page++ {
+		doc, vars := buildStatBatch(pending, cursors)
+
+		var data map[string]statSearchResult
+		err := c.Do(ctx, doc, vars, &data)
+		if err != nil && failure == nil {
+			failure = err
+		}
+
+		next := make([]Query, 0, len(pending))
+		for _, q := range pending {
+			res, ok := data[q.Alias]
+			if !ok {
+				// This alias did not resolve; failure says why.
 				continue
 			}
-			prs = append(prs, pr)
+			out[q.Alias] = append(out[q.Alias], onlyPRs(res.Nodes)...)
+			if res.PageInfo.HasNextPage && res.PageInfo.EndCursor != "" {
+				cursors[q.Alias] = res.PageInfo.EndCursor
+				next = append(next, q)
+			}
 		}
+		pending = next
+	}
+
+	for alias, prs := range out {
 		sort.SliceStable(prs, func(i, j int) bool { return prs[i].CreatedAt.After(prs[j].CreatedAt) })
 		out[alias] = prs
 	}
-	return out, err
+	return out, failure
+}
+
+// onlyPRs drops the nodes that are not pull requests: search returns a union,
+// and an issue decodes into the struct as zero values.
+func onlyPRs(nodes []PullRequestStat) []PullRequestStat {
+	prs := make([]PullRequestStat, 0, len(nodes))
+	for _, pr := range nodes {
+		if pr.Number == 0 || pr.URL == "" {
+			continue
+		}
+		prs = append(prs, pr)
+	}
+	return prs
 }

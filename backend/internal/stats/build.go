@@ -47,7 +47,7 @@ func ResolveWeek(now time.Time, days int) Week {
 
 const searchBase = "is:pr"
 
-// Build runs the week's four searches in one round trip and reduces them.
+// Build runs the week's four searches and reduces them.
 func Build(ctx context.Context, cl *github.Client, req Request) (*Stats, error) {
 	me := req.Login
 	week := ResolveWeek(req.Now, req.Days)
@@ -62,7 +62,7 @@ func Build(ctx context.Context, cl *github.Client, req Request) (*Stats, error) 
 		{Alias: "reviewed", Search: fmt.Sprintf("%s reviewed-by:%s -author:%s updated:>=%s", searchBase, me, me, since)},
 	}
 
-	results, err := cl.BatchStatSearch(ctx, queries, req.Limit)
+	results, err := cl.BatchStatSearch(ctx, queries)
 	if err != nil && len(results) == 0 {
 		return nil, err
 	}
