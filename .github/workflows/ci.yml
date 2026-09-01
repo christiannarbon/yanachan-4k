@@ -193,7 +193,7 @@ jobs:
           test "$code" = 200
           echo "  health is exempt from the allowlist"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: yana-chan-4k-linux-amd64
           path: bin/yana-chan-4k
