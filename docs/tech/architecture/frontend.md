@@ -68,6 +68,10 @@ header that stays put, and under it a rail and the board, each scrolling on its
 own. A rail listing twenty organizations therefore stays reachable from the
 bottom of a long queue.
 
+The shell fills the window rather than sitting in a centred column, so the rail
+is against the left edge and a wide monitor spends its width on pull requests.
+The header's 20px of padding puts the title over the navigation labels below it.
+
 Under 860px the rail has nowhere to sit, so it becomes a drawer over the board
 with a scrim behind it and a button in the header.
 
