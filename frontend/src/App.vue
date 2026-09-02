@@ -354,9 +354,12 @@ async function toggleOnlyActive() {
 /* An app shell rather than a scrolling page: the header stays put, and the
    navigation and the board scroll independently underneath it. That is what
    lets a rail of twenty organizations stay reachable from the bottom of a long
-   queue without either one dragging the other around. */
+   queue without either one dragging the other around.
+
+   The shell fills the window rather than sitting in a centred column: the rail
+   belongs against the left edge, and a wide monitor should spend its width on
+   pull requests instead of two grey gutters. */
 .shell {
-  --shell-max: 1360px;
   --rail: 256px;
   height: 100%;
   /* The board keeps its own scrolling inside .body; this is here for the sign-in
@@ -374,8 +377,8 @@ async function toggleOnlyActive() {
   z-index: 10;
 }
 .topbar-inner {
-  max-width: var(--shell-max);
-  margin: 0 auto;
+  /* 20px puts the title over the navigation labels below it, which sit 10px
+     into the rail's own 10px of padding. */
   padding: 14px 20px;
   display: flex;
   align-items: center;
@@ -388,8 +391,6 @@ async function toggleOnlyActive() {
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
-  max-width: var(--shell-max);
-  margin: 0 auto;
   display: flex;
   align-items: stretch;
 }
