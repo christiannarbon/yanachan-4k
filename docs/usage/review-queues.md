@@ -65,6 +65,9 @@ folded everywhere and after a reload. **Collapse all**, beside the section's
 own heading, folds every group at once — and becomes **Expand all** once they
 all are.
 
+On a wide window each group's cards wrap into columns rather than stretching to
+the far edge; a laptop keeps the single column it had.
+
 Grouping rearranges the list without re-ranking it. A group takes the position
 of its first pull request and the order inside a group is untouched, so the
 sort still holds: the repository you are needed in leads the page.
