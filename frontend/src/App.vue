@@ -195,6 +195,7 @@ async function toggleOnlyActive() {
         <div class="topbar-inner">
           <button
             class="ghost drawer-toggle"
+            aria-controls="rail"
             :aria-expanded="drawerOpen"
             @click="drawerOpen = !drawerOpen"
           >
@@ -240,7 +241,7 @@ async function toggleOnlyActive() {
              job is to give the tap outside somewhere to land. -->
         <div v-if="drawerOpen" class="scrim" @click="drawerOpen = false"></div>
 
-        <aside class="rail" :class="{ 'rail-open': drawerOpen }">
+        <aside id="rail" class="rail" :class="{ 'rail-open': drawerOpen }">
           <SideNav :sections="board.sections" :active-id="activeTab" @select="onSelect" />
         </aside>
 
@@ -313,9 +314,9 @@ async function toggleOnlyActive() {
             </p>
           </template>
 
-            <footer class="foot soft">
-              {{ t.board.footer(ago(board.generatedAt, now), board.limit) }}
-            </footer>
+          <footer class="foot soft">
+            {{ t.board.footer(ago(board.generatedAt, now), board.limit) }}
+          </footer>
         </main>
       </div>
     </template>
@@ -329,7 +330,16 @@ async function toggleOnlyActive() {
    navigation and the board scroll independently underneath it. That is what
    lets a rail of twenty organizations stay reachable from the bottom of a long
    queue without either one dragging the other around. */
-.shell { --shell-max: 1360px; --rail: 236px; height: 100%; display: flex; flex-direction: column; }
+.shell {
+  --shell-max: 1360px;
+  --rail: 236px;
+  height: 100%;
+  /* The board keeps its own scrolling inside .body; this is here for the sign-in
+     screen, which is a single tall block and has to be able to scroll. */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
 .centered { padding: 60px 20px; text-align: center; }
 
 .topbar {
