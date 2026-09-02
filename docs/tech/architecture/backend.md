@@ -70,7 +70,16 @@ semantics, same sort order. `stats` is new. Details:
 
 A small GraphQL client — `Do(ctx, query, vars, out)` — plus the two batched
 searches. It deliberately returns GraphQL errors *alongside* partially populated
-data, because one unreadable organization should not blank the other nine tabs.
+data, because one unreadable organization should not blank the other nine
+sections.
+
+A request is sent up to three times, backing off 400ms and then 800ms, when the
+transport fails or GitHub's edge answers 502, 503 or 504. Those clear on the
+next attempt nearly every time. A 429 is not retried — a rate limit wants the
+window to pass — and neither is anything else.
+
+Only a JSON body is quoted back in the error. A 502 from the edge is a page of
+nginx HTML, and that used to land on the dashboard as-is.
 
 ### `internal/ghcli` and `internal/ghauth`
 

@@ -84,6 +84,14 @@ fine and then has no page to serve. `make run` builds both.
 make build-frontend
 ```
 
+## `github is having trouble (502 Bad Gateway)`
+
+GitHub's edge, not this app. The client already sends the request three times
+before saying so, so a message that survives that is a real outage or a network
+in the way; [githubstatus.com](https://www.githubstatus.com/) says which.
+
+Refresh once it clears. Nothing is cached, so the next refresh is clean.
+
 ## Port already in use
 
 ```sh
