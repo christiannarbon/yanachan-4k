@@ -332,7 +332,7 @@ async function toggleOnlyActive() {
    queue without either one dragging the other around. */
 .shell {
   --shell-max: 1360px;
-  --rail: 236px;
+  --rail: 256px;
   height: 100%;
   /* The board keeps its own scrolling inside .body; this is here for the sign-in
      screen, which is a single tall block and has to be able to scroll. */
@@ -421,6 +421,9 @@ async function toggleOnlyActive() {
    board and the button in the header is the way in and out of it. */
 @media (max-width: 860px) {
   .drawer-toggle { display: inline-flex; order: -1; }
+  /* The button and the title share the first line; the summary under the title
+     wraps within the brand rather than pushing the button onto a line alone. */
+  .brand { flex: 1 1 200px; min-width: 0; }
   .rail {
     position: fixed;
     top: 0;

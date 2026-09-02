@@ -134,19 +134,24 @@ const activeGroup = computed(
       </ul>
     </section>
 
-    <button
-      class="nav-item nav-tail"
-      :class="{ 'nav-current': activeId === 'settings' }"
-      :aria-current="activeId === 'settings' ? 'page' : undefined"
-      @click="emit('select', 'settings')"
-    >
-      <span class="nav-label">{{ t.sections.settings }}</span>
-    </button>
+    <div class="nav-foot">
+      <button
+        class="nav-item"
+        :class="{ 'nav-current': activeId === 'settings' }"
+        :aria-current="activeId === 'settings' ? 'page' : undefined"
+        @click="emit('select', 'settings')"
+      >
+        <span class="nav-label">{{ t.sections.settings }}</span>
+      </button>
+    </div>
   </nav>
 </template>
 
 <style scoped>
 .nav {
+  /* Full height even when the list is short, so settings can sit at the foot
+     of the rail rather than trailing the last organization. */
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -178,7 +183,11 @@ const activeGroup = computed(
 
 /* The two fixed entries bracket the groups: your week on top, settings last. */
 .nav-lead { margin-bottom: 6px; }
-.nav-tail { margin-top: auto; }
+.nav-foot {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
 
 .nav-group + .nav-group { margin-top: 10px; }
 .nav-head { margin: 0; }
