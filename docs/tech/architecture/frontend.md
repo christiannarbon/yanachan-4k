@@ -1,8 +1,9 @@
 # Frontend
 
-Vue 3 with `<script setup>`, TypeScript, Vite. No router, no state library, no
-component framework — the whole app is one page with a navigation rail down its
-left side, and the state that outlives a component fits in a few modules.
+Vue 3 with `<script setup>`, TypeScript, Vite. No router library, no state
+library, no component framework — the whole app is one page with a navigation
+rail down its left side, and the state that outlives a component fits in a few
+modules.
 
 ## Layout
 
@@ -11,7 +12,7 @@ frontend/
   src/components/      AuthGate, SideNav, RepoGroup, PrCard, StatsPanel,
                        WeekChart, SettingsPanel, ThemePicker, LocalePicker,
                        CornerControls
-  src/composables/     useTheme, useRepoGroups, useSideNav
+  src/composables/     useTheme, useRepoGroups, useSideNav, useRouting
   src/i18n/            useI18n, Msg.vue, and the en / ja catalogs
   src/styles/          theme tokens, the generated palettes, the calorie meter layer
   src/lib/             API client, types, time helpers
@@ -38,6 +39,28 @@ stale on a tab left open.
 `FIXED_TABS` (`dashboard`, `settings`) exist so a reload never navigates away
 from a view when the section list changes underneath it.
 
+## Paths
+
+Which section is showing is one string, and the path is where it is written
+down, so every view has a link that survives a reload:
+
+| Path | Shows |
+| --- | --- |
+| `/dashboard` | your week, and where `/` and anything unreadable land |
+| `/prs/mine`, `/prs/review` | the two built-in queues |
+| `/prs/team/<org>/<slug>` | a followed team |
+| `/prs/org/<login>` | a followed organization |
+| `/settings` | settings |
+
+`lib/routes.ts` is the mapping and nothing else; `composables/useRouting.ts`
+holds the ref and talks to the history API. A click pushes an entry, so back
+returns you to the previous section. A correction replaces one instead — an
+unreadable path on arrival, or a link to a team that is no longer followed —
+because a back button that walks into those again is a trap.
+
+The Go handler already serves `index.html` for any path that is not a file, so
+deep links work in the shipped binary as well as under Vite.
+
 ## The shell
 
 `App.vue` lays the page out as an app shell rather than a scrolling page: a
@@ -59,6 +82,9 @@ any component, none of them a store library.
 | `i18n/index.ts` | the active locale and the catalog it selects | `yana.locale` |
 | `composables/useRepoGroups.ts` | which repository groups the viewer has folded away | `yana.collapsedRepos` |
 | `composables/useSideNav.ts` | which navigation headings the viewer has folded away | `yana.navGroups` |
+
+`composables/useRouting.ts` is a fifth module-level ref, but its mirror is the
+address bar rather than `localStorage`.
 
 The first two read a pre-rename key as a fallback. All of them wrap every
 `localStorage` access in `try/catch` — private windows and blocked site data
