@@ -7,6 +7,7 @@ import SettingsPanel from './components/SettingsPanel.vue'
 import SideNav from './components/SideNav.vue'
 import StatsPanel from './components/StatsPanel.vue'
 import { groupByRepo, useRepoGroups } from './composables/useRepoGroups'
+import { useRouting } from './composables/useRouting'
 import { useSideNav } from './composables/useSideNav'
 import Msg from './i18n/Msg.vue'
 import { useI18n } from './i18n'
@@ -16,6 +17,7 @@ import type { AuthStatus, Board, Settings, Stats } from './lib/types'
 const { t, ago, stamp, sectionTitle, windowLabel } = useI18n()
 const { isCollapsed, toggle: toggleRepo, setAll: setAllRepos } = useRepoGroups()
 const { drawerOpen } = useSideNav()
+const { activeSection: activeTab, go, startRouting } = useRouting()
 
 /** Views that are not board sections, so a reload never navigates away from
  *  them even when the section list changes underneath. */
@@ -25,8 +27,6 @@ const authStatus = ref<AuthStatus | null>(null)
 const board = ref<Board | null>(null)
 const stats = ref<Stats | null>(null)
 const settings = ref<Settings | null>(null)
-/** You land on your own week; the queues are a click away. */
-const activeTab = ref('dashboard')
 const loading = ref(true)
 const refreshing = ref(false)
 const error = ref('')
@@ -38,16 +38,22 @@ const now = ref(Date.now())
 
 let clockTimer: number | undefined
 let refreshTimer: number | undefined
+let stopRouting: (() => void) | undefined
 const REFRESH_MS = 5 * 60 * 1000
 
 onMounted(async () => {
   clockTimer = window.setInterval(() => (now.value = Date.now()), 30_000)
+  stopRouting = startRouting()
   window.addEventListener('keydown', onKeydown)
+  // `/`, and anything the app cannot read, become the landing path rather than
+  // sitting in the address bar naming a page nobody is looking at.
+  go(activeTab.value, true)
   await bootstrap()
 })
 
 onUnmounted(() => {
   if (clockTimer !== undefined) window.clearInterval(clockTimer)
+  if (stopRouting) stopRouting()
   window.removeEventListener('keydown', onKeydown)
   stopAutoRefresh()
 })
@@ -97,7 +103,8 @@ async function loadBoard() {
     board.value = next
     now.value = Date.now()
     if (!FIXED_TABS.includes(activeTab.value) && !next.sections.some((s) => s.id === activeTab.value)) {
-      activeTab.value = next.sections[0]?.id ?? 'mine'
+      // A link to a team you no longer follow, or a section that has gone.
+      go(next.sections[0]?.id ?? 'mine', true)
     }
   } catch (e) {
     if (e instanceof ApiError && e.status === 401) {
@@ -131,7 +138,7 @@ async function onSignOut() {
   board.value = null
   stats.value = null
   settings.value = null
-  activeTab.value = 'dashboard'
+  go('dashboard')
   drawerOpen.value = false
   authStatus.value = await api.authStatus()
 }
@@ -145,7 +152,7 @@ async function onSettingsSaved(saved: Settings) {
 /** The navigation's one job. On a narrow window it also shuts the drawer,
  *  which is covering the thing you just asked to see. */
 function onSelect(id: string) {
-  activeTab.value = id
+  go(id)
   drawerOpen.value = false
 }
 
@@ -156,6 +163,24 @@ function onKeydown(e: KeyboardEvent) {
 const currentSection = computed(() => board.value?.sections.find((s) => s.id === activeTab.value) ?? null)
 const showUrls = computed(() => settings.value?.showUrls ?? true)
 const totalHot = computed(() => board.value?.sections.reduce((sum, s) => sum + s.hot, 0) ?? 0)
+
+/** The name of the page, for the browser tab and for the history entry the
+ *  path just made. */
+watch(
+  [activeTab, currentSection, t],
+  () => {
+    const name =
+      activeTab.value === 'dashboard'
+        ? t.value.sections.dashboard
+        : activeTab.value === 'settings'
+          ? t.value.sections.settings
+          : currentSection.value
+            ? sectionTitle(currentSection.value)
+            : ''
+    document.title = name ? `${name} · ${t.value.appName}` : t.value.appName
+  },
+  { immediate: true },
+)
 
 /** The visible queue, split by repository. Empty on the two fixed tabs. */
 const repoGroups = computed(() => groupByRepo(currentSection.value?.entries ?? []))

@@ -29,8 +29,8 @@ Nothing is followed and no token is read until you say so; see
 [authentication](authentication.md) for the three paths and what each one costs
 you.
 
-Once you are in, you land on [Your week](weekly-dashboard.md). The rest of the
-rail starts out nearly empty by design: teams and organizations are added by you in
+Once you are in, you land on [Your week](weekly-dashboard.md) at `/dashboard`.
+The rest of the rail starts out nearly empty by design: teams and organizations are added by you in
 [Settings](settings.md), and until then there are only your own pull requests
 and the reviews requested from you.
 
