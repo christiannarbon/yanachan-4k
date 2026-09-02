@@ -73,8 +73,8 @@ the backend restarted, or the poll arrived before a start. Click sign-in again.
 
 ## Signed in, but the board is empty
 
-- Check whether tabs exist at all. Team and org tabs only appear once you add
-  them in [Settings](../../usage/settings.md).
+- Check whether the sections exist at all. Team and org sections only appear
+  once you add them in [Settings](../../usage/settings.md).
 - `Your open PRs` genuinely empty is a correct answer if you have no open pull
   requests.
 - A `warning` on the board means a partial GitHub failure — one search resolved,

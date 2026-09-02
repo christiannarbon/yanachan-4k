@@ -29,8 +29,8 @@ Nothing is followed and no token is read until you say so; see
 [authentication](authentication.md) for the three paths and what each one costs
 you.
 
-Once you are in, you land on [Your week](weekly-dashboard.md). The other tabs
-start out nearly empty by design: teams and organizations are added by you in
+Once you are in, you land on [Your week](weekly-dashboard.md). The rest of the
+rail starts out nearly empty by design: teams and organizations are added by you in
 [Settings](settings.md), and until then there are only your own pull requests
 and the reviews requested from you.
 
@@ -76,5 +76,5 @@ Two files in a state directory — `settings.json` and `session.json`, both
 
 - [Authentication](authentication.md) — sign in.
 - [Your week](weekly-dashboard.md) — the tab you land on.
-- [Review queues](review-queues.md) — the tabs that are queues.
+- [Review queues](review-queues.md) — the sections that are queues.
 - [Docker](docker.md) or [Kubernetes](kubernetes.md) — run it somewhere else.

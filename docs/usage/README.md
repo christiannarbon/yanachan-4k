@@ -15,7 +15,7 @@ knowledge is assumed; if you are here to change the code, start at
 
 - [Your week](weekly-dashboard.md) — the look back: opened, merged, closed,
   reviewed, and the calorie total.
-- [Review queues](review-queues.md) — the tabs that are queues, the `Reply` and
+- [Review queues](review-queues.md) — the sections that are queues, the `Reply` and
   `New` badges, and the activity window that decides what counts as recent.
 
 ## Making it yours

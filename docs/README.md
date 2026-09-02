@@ -11,7 +11,7 @@ You want the thing on screen, authenticated, showing your pull requests.
 | [Getting started](usage/getting-started.md) | prerequisites, `make deps`, `make run`, the first screen |
 | [Authentication](usage/authentication.md) | the three sign-in paths, where the token lives, signing out |
 | [Your week](usage/weekly-dashboard.md) | the landing tab: the four counts, the calorie figure, reading the chart |
-| [Review queues](usage/review-queues.md) | the queue tabs, the indicators, the activity window |
+| [Review queues](usage/review-queues.md) | the queues, the indicators, the activity window |
 | [Settings](usage/settings.md) | teams, organizations, the window override, the state files |
 | [Themes](usage/themes.md) | the ten palettes and how to pick one |
 | [Language](usage/language.md) | English and Japanese |
