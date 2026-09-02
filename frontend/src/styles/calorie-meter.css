@@ -28,8 +28,8 @@
  *      the ratios are noted inline.
  *
  * The selectors carry an extra class on purpose. Vue compiles a component's
- * scoped `.tab-count` to `.tab-count[data-v-hash]`, which is two specificity
- * points; a bare `[data-art] .tab-count` ties with it and would then depend on
+ * scoped `.nav-count` to `.nav-count[data-v-hash]`, which is two specificity
+ * points; a bare `[data-art] .nav-count` ties with it and would then depend on
  * stylesheet order, which is not stable for runtime-injected component styles.
  * Adding the ancestor breaks the tie for good.
  */
@@ -44,11 +44,11 @@
 
 /* --- kcal digit tiles ------------------------------------------------------
    Upstream sets each digit of the running total in its own yellow rounded tile
-   in Quantico. Every count in this app -- the per-tab totals -- gets the same
-   treatment. Navy on yellow is 13.2:1, and the hairline keeps the tile's edge
+   in Quantico. Every count in this app -- the per-section totals in the side
+   navigation -- gets the same treatment. Navy on yellow is 13.2:1, and the hairline keeps the tile's edge
    from dissolving into the white panel behind it, where yellow alone is 1.2:1. */
 
-[data-art="yanami-calorie-meter"] .tabs .tab-count {
+[data-art="yanami-calorie-meter"] .nav .nav-count {
   min-width: 24px;
   padding: 1px 7px;
   border: 1px solid var(--cal-navy);
@@ -61,14 +61,14 @@
   letter-spacing: 0.02em;
 }
 
-/* A tab holding something that needs you takes the cap's vermillion instead.
-   Navy stays the ink: it is 5.7:1 on this orange, where white is only 2.8:1. */
-[data-art="yanami-calorie-meter"] .tabs .tab-count.tab-count-hot {
+/* A section holding something that needs you takes the cap's vermillion
+   instead. Navy stays the ink: 5.7:1 on this orange, where white is 2.8:1. */
+[data-art="yanami-calorie-meter"] .nav .nav-count.nav-count-hot {
   background: var(--cal-orange);
   color: var(--cal-navy);
 }
 
-[data-art="yanami-calorie-meter"] .tabs .tab-dot {
+[data-art="yanami-calorie-meter"] .nav .nav-dot {
   background: var(--cal-orange);
 }
 
