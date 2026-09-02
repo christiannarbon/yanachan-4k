@@ -126,5 +126,12 @@ const { t } = useI18n()
   background: var(--dim);
 }
 
-.group-list { display: flex; flex-direction: column; gap: 10px; }
+/* One column on a laptop, more as the window allows. A card only needs about
+   640px to hold its title and its indicators, and past that it was stretching
+   to the far edge of a 4K display with everything still in the left third. */
+.group-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 640px), 1fr));
+  gap: 10px;
+}
 </style>
