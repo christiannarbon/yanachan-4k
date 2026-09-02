@@ -17,15 +17,22 @@ type Client struct {
 	http     *http.Client
 	endpoint string
 	token    string
+	// First backoff between attempts; each retry doubles it. A field rather
+	// than a constant so the tests do not sleep.
+	retryWait time.Duration
 }
 
 func New(endpoint, token string) *Client {
 	return &Client{
-		http:     &http.Client{Timeout: 45 * time.Second},
-		endpoint: endpoint,
-		token:    token,
+		http:      &http.Client{Timeout: 45 * time.Second},
+		endpoint:  endpoint,
+		token:     token,
+		retryWait: 400 * time.Millisecond,
 	}
 }
+
+// How many times a request is sent before its failure is the caller's problem.
+const attempts = 3
 
 type gqlError struct {
 	Message string `json:"message"`
@@ -40,29 +47,9 @@ func (c *Client) Do(ctx context.Context, query string, vars map[string]any, out 
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(payload))
+	body, err := c.send(ctx, payload)
 	if err != nil {
 		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("User-Agent", "yana-chan-4k")
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 32<<20))
-	if err != nil {
-		return err
-	}
-	if resp.StatusCode == http.StatusUnauthorized {
-		return ErrUnauthorized
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("github graphql: %s: %s", resp.Status, truncate(string(body), 300))
 	}
 
 	var envelope struct {
@@ -88,6 +75,115 @@ func (c *Client) Do(ctx context.Context, query string, vars map[string]any, out 
 }
 
 var ErrUnauthorized = errors.New("github rejected the token (401)")
+
+// send posts the payload and returns the response body, retrying the failures
+// that are the upstream's mood rather than a problem with the request.
+//
+// GitHub's edge answers a 502 or a 503 now and again, usually for one request
+// out of a burst, and the old behaviour was to hand that straight to the
+// dashboard -- as a page of nginx HTML, on the tab you land on. Nearly all of
+// them clear on the next attempt.
+//
+// Only transport failures and 502/503/504 are retried. A 429 is not: a rate
+// limit wants the window to pass, not another request half a second later.
+func (c *Client) send(ctx context.Context, payload []byte) ([]byte, error) {
+	var lastErr error
+	for attempt := range attempts {
+		if attempt > 0 {
+			wait := c.retryWait << (attempt - 1)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(wait):
+			}
+		}
+
+		body, status, err := c.once(ctx, payload)
+		switch {
+		case err != nil && ctx.Err() != nil:
+			return nil, err
+		case err != nil:
+			lastErr = err
+		case status == http.StatusUnauthorized:
+			return nil, ErrUnauthorized
+		case status == http.StatusOK:
+			return body, nil
+		case retryable(status):
+			lastErr = upstreamError(status, body)
+		default:
+			return nil, upstreamError(status, body)
+		}
+	}
+	return nil, lastErr
+}
+
+// once is a single attempt. The status comes back alongside the body so send
+// can decide whether it is worth another go.
+func (c *Client) once(ctx context.Context, payload []byte) ([]byte, int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.endpoint, bytes.NewReader(payload))
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("User-Agent", "yana-chan-4k")
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 32<<20))
+	if err != nil {
+		return nil, resp.StatusCode, err
+	}
+	return body, resp.StatusCode, nil
+}
+
+func retryable(status int) bool {
+	return status == http.StatusBadGateway ||
+		status == http.StatusServiceUnavailable ||
+		status == http.StatusGatewayTimeout
+}
+
+// upstreamError words a non-200 for somebody reading the dashboard.
+//
+// The body is quoted only when GitHub sent JSON, which is when it has
+// something to say. A 502 from the edge is a page of HTML, and pasting that
+// into the notice is how this looked like a broken app rather than a blip.
+func upstreamError(status int, body []byte) error {
+	if msg := jsonMessage(body); msg != "" {
+		return fmt.Errorf("github graphql: %s: %s", http.StatusText(status), truncate(msg, 300))
+	}
+	if retryable(status) {
+		return fmt.Errorf("github is having trouble (%d %s); it usually clears in a moment",
+			status, http.StatusText(status))
+	}
+	return fmt.Errorf("github graphql: %d %s", status, http.StatusText(status))
+}
+
+// jsonMessage pulls GitHub's own wording out of an error body, or returns ""
+// when the body is not JSON.
+func jsonMessage(body []byte) string {
+	var envelope struct {
+		Message string     `json:"message"`
+		Errors  []gqlError `json:"errors"`
+	}
+	if err := json.Unmarshal(body, &envelope); err != nil {
+		return ""
+	}
+	if envelope.Message != "" {
+		return envelope.Message
+	}
+	msgs := make([]string, 0, len(envelope.Errors))
+	for _, e := range envelope.Errors {
+		if e.Message != "" {
+			msgs = append(msgs, e.Message)
+		}
+	}
+	return strings.Join(msgs, "; ")
+}
 
 // Viewer returns the login of the authenticated user.
 func (c *Client) Viewer(ctx context.Context) (string, error) {
