@@ -27,7 +27,7 @@ The window is the only bound on the request. `Request` carries no page size,
 because a total has to cover all of its window — see
 [the week pages, the board does not](graphql-batching.md#the-week-pages-the-board-does-not).
 
-## The four searches
+## The five searches
 
 One batched round trip over the lighter `PRStat` fragment, paged to the end of
 the window:
@@ -38,6 +38,7 @@ the window:
 | `merged` | `is:pr author:me merged:>=SINCE` |
 | `closed` | `is:pr author:me is:unmerged closed:>=SINCE` |
 | `reviewed` | `is:pr reviewed-by:me -author:me updated:>=SINCE` |
+| `declined` | `is:pr -author:me is:unmerged is:closed involves:me closed:>=SINCE` |
 
 Each alias is paged until GitHub runs out of results for it, so a week busier
 than one page is counted rather than sampled. Every result is then re-checked
@@ -49,6 +50,38 @@ zone.
 is no search qualifier for "reviewed on". A pull request you reviewed three
 weeks ago that was updated yesterday comes back and is then dropped by
 `countReviews` returning no in-week days.
+
+`declined` is the same shape of compromise. There is no `closed-by:` qualifier
+either, so it asks the loosest question search can answer — pull requests
+somebody else opened, closed unmerged, that you were involved in — and the
+close is attributed in Go.
+
+## Counting closes
+
+```go
+closedInWeek(pr, week) bool
+```
+
+`closed` and `declined` both reduce through it: unmerged, actually closed, and
+closed inside the window. Merging closes a branch too, and that is 400 kcal
+under a different name, so a merged pull request is never a closed one here.
+
+`declined` adds one more test, `pr.ClosedByLogin() == me`, read off the last
+`CLOSED_EVENT` on the timeline — the close that stuck, on a branch that was
+closed, reopened and closed again. Without it the alias would count a bot
+superseding its own pull request, or a colleague closing one you had merely
+commented on.
+
+The two aliases cannot return the same pull request, one being `author:me` and
+the other `-author:me`, so the tile needs no dedup. `Stats.Closed` is therefore
+**your branches that ended unmerged, plus anybody's branch that you closed** —
+which is the half of triage that used to be invisible, because a dependency
+bump you turn down has your name nowhere on it. See
+[issue #24](https://github.com/christiannarbon/yanachan-4k/issues/24).
+
+`involves:` is author, assignee, mentions, commenter — and, in practice,
+reviewer. A branch you closed with no other interaction at all is the one case
+search cannot reach, and it stays uncounted.
 
 ## Counting reviews
 

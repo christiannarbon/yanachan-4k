@@ -58,6 +58,13 @@ type ReviewNode struct {
 	Author    *Actor    `json:"author"`
 }
 
+// ClosedEventNode is one CLOSED_EVENT off a pull request's timeline: who
+// closed the branch, and when. Actor is nil for a close by a deleted account.
+type ClosedEventNode struct {
+	CreatedAt time.Time `json:"createdAt"`
+	Actor     *Actor    `json:"actor"`
+}
+
 type ReviewThreadNode struct {
 	IsResolved bool `json:"isResolved"`
 	Comments   struct {

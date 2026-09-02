@@ -49,7 +49,7 @@ func ResolveWeek(now time.Time, days int) Week {
 
 const searchBase = "is:pr"
 
-// Build runs the week's four searches and reduces them.
+// Build runs the week's five searches and reduces them.
 func Build(ctx context.Context, cl *github.Client, req Request) (*Stats, error) {
 	me := req.Login
 	week := ResolveWeek(req.Now, req.Days)
@@ -62,6 +62,13 @@ func Build(ctx context.Context, cl *github.Client, req Request) (*Stats, error) 
 		{Alias: "merged", Search: fmt.Sprintf("%s author:%s merged:>=%s", searchBase, me, since)},
 		{Alias: "closed", Search: fmt.Sprintf("%s author:%s is:unmerged closed:>=%s", searchBase, me, since)},
 		{Alias: "reviewed", Search: fmt.Sprintf("%s reviewed-by:%s -author:%s updated:>=%s", searchBase, me, me, since)},
+		// Turning down somebody else's branch -- almost always a bot's -- is
+		// the half of triage that leaves no trace on your own account. It is
+		// not `author:me`, so none of the three searches above will ever see
+		// it, and a morning spent closing dependency bumps used to read as an
+		// empty week. `involves:` is the widest net GitHub search offers here
+		// and it covers reviewers; who actually closed it is decided in Go.
+		{Alias: "declined", Search: fmt.Sprintf("%s -author:%s is:unmerged is:closed involves:%s closed:>=%s", searchBase, me, me, since)},
 	}
 
 	results, err := cl.BatchStatSearch(ctx, queries)
@@ -123,7 +130,23 @@ func Build(ctx context.Context, cl *github.Client, req Request) (*Stats, error) 
 	}
 
 	for _, pr := range results["closed"] {
-		if pr.MergedAt != nil || pr.ClosedAt == nil || !inWeek(*pr.ClosedAt, week) {
+		if !closedInWeek(pr, week) {
+			continue
+		}
+		s.Closed++
+		touch(pr.Repository.NameWithOwner)
+	}
+
+	// The declined search asks who was involved, which is a much looser
+	// question than who reached for the button. Keep only the branches this
+	// viewer closed themselves: a bot that supersedes its own pull request,
+	// or a colleague who closed one you had merely commented on, is their
+	// afternoon and not yours.
+	//
+	// No dedup against `closed` is needed: that search is author:me and this
+	// one is -author:me, so the two sets cannot overlap.
+	for _, pr := range results["declined"] {
+		if !closedInWeek(pr, week) || pr.ClosedByLogin() != me {
 			continue
 		}
 		s.Closed++
@@ -191,6 +214,13 @@ func countReviews(pr github.PullRequestStat, me string, w Week) (written, approv
 	}
 	sort.Strings(days)
 	return written, approvals, days
+}
+
+// closedInWeek is "this branch was turned down, inside the window". A merge
+// closes a pull request too, and that is a different verb with a different
+// weight, so a merged branch is never a closed one here.
+func closedInWeek(pr github.PullRequestStat, w Week) bool {
+	return pr.MergedAt == nil && pr.ClosedAt != nil && inWeek(*pr.ClosedAt, w)
 }
 
 func ref(pr github.PullRequestStat) *PRRef {

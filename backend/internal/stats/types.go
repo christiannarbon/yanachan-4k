@@ -2,6 +2,10 @@
 // dashboard: what the viewer opened, merged, closed and reviewed, the shape of
 // each day, and a few things worth being pleased about.
 //
+// "Closed" is the one count that reaches past the viewer's own branches, and
+// deliberately: turning down a dependency bump is triage, and it would
+// otherwise be the only kind of work here that leaves no mark at all.
+//
 // Where package board answers "what needs me right now", this answers "what
 // did I get done". The two share a client and a login and nothing else.
 package stats
@@ -71,9 +75,12 @@ type Stats struct {
 	GeneratedAt time.Time `json:"generatedAt"`
 
 	// The four headline counts, in the order the tiles show them.
-	Opened   int `json:"opened"`
-	Merged   int `json:"merged"`
-	Closed   int `json:"closed"`   // closed without merging
+	Opened int `json:"opened"`
+	Merged int `json:"merged"`
+	// Closed is branches turned down: yours that ended unmerged, plus
+	// anybody else's that you were the one to close. The second half is
+	// mostly bots, and it is work whether or not your name is on the branch.
+	Closed   int `json:"closed"`
 	Reviewed int `json:"reviewed"` // distinct pull requests you reviewed
 
 	ReviewsWritten int `json:"reviewsWritten"`

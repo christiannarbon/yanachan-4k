@@ -1,6 +1,7 @@
 package stats
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -162,5 +163,52 @@ func TestReviewCountingIgnoresOthersAndDrafts(t *testing.T) {
 	}
 	if len(days) != 2 {
 		t.Errorf("active days = %v, want two", days)
+	}
+}
+
+// closedBy builds one pull request off the declined search: turned down at
+// `when`, by `who`.
+func closedBy(number int, who string, when time.Time) github.PullRequestStat {
+	pr := github.PullRequestStat{Number: number, URL: fmt.Sprintf("https://x/%d", number), ClosedAt: &when}
+	pr.TimelineItems.Nodes = []github.ClosedEventNode{
+		{CreatedAt: when, Actor: &github.Actor{Typename: "User", Login: who}},
+	}
+	return pr
+}
+
+func TestClosedByLoginReadsTheCloseThatStuck(t *testing.T) {
+	if got := closedBy(1, "me", at(2026, time.August, 28, 10)).ClosedByLogin(); got != "me" {
+		t.Errorf("closed by %q, want me", got)
+	}
+	// Nothing closed it, and nothing should be attributed to anybody.
+	if got := (github.PullRequestStat{Number: 2}).ClosedByLogin(); got != "" {
+		t.Errorf("an open branch reported a closer: %q", got)
+	}
+	// A deleted account leaves the event behind with no actor on it.
+	orphan := github.PullRequestStat{Number: 3}
+	orphan.TimelineItems.Nodes = []github.ClosedEventNode{{CreatedAt: at(2026, time.August, 28, 10)}}
+	if got := orphan.ClosedByLogin(); got != "" {
+		t.Errorf("a close by a deleted account reported %q, want empty", got)
+	}
+}
+
+func TestClosedInWeekIgnoresMergesAndOpenBranches(t *testing.T) {
+	w := ResolveWeek(at(2026, time.August, 30, 14), 7)
+
+	if !closedInWeek(closedBy(1, "me", at(2026, time.August, 28, 10)), w) {
+		t.Error("a branch closed inside the window did not count")
+	}
+	if closedInWeek(closedBy(2, "me", at(2026, time.August, 20, 10)), w) {
+		t.Error("a branch closed before the window counted")
+	}
+	if closedInWeek(github.PullRequestStat{Number: 3}, w) {
+		t.Error("a branch nobody has closed counted")
+	}
+	// Merging closes a pull request too. That is 400 kcal under a different
+	// name, and counting it here as well would pay for it twice.
+	merged := closedBy(4, "me", at(2026, time.August, 28, 10))
+	merged.MergedAt = merged.ClosedAt
+	if closedInWeek(merged, w) {
+		t.Error("a merged branch counted as closed")
 	}
 }
