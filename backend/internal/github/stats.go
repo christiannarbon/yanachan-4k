@@ -12,10 +12,17 @@ import (
 //
 // It is deliberately not PRBits. The board asks "who said what, and when",
 // so it drags along comments and review threads; the stats ask "what did I
-// finish, and how big was it", which is closedAt/mergedAt, a diff size, and
-// the reviews the viewer themselves submitted. Sharing one fragment would
-// mean every stats refresh paid for thirty comments per pull request that
-// nothing ever reads.
+// finish, and how big was it", which is closedAt/mergedAt, a diff size, the
+// reviews the viewer themselves submitted, and who closed it. Sharing one
+// fragment would mean every stats refresh paid for thirty comments per pull
+// request that nothing ever reads.
+//
+// The timeline slice is the one field here that is not simply a column of the
+// pull request. There is no `closedBy` on PullRequest and no `closed-by:`
+// search qualifier, so the only way to know whether the viewer was the one who
+// closed somebody else's branch is the event that closed it. `last:1` is the
+// close that stuck, which is the one closedAt agrees with on a branch that was
+// closed, reopened and closed again.
 const statBits = `
 fragment StatBits on PullRequest {
   number title url createdAt closedAt mergedAt
@@ -23,6 +30,9 @@ fragment StatBits on PullRequest {
   repository { nameWithOwner }
   author { __typename login }
   reviews(last:50) { nodes { createdAt state author { __typename login } } }
+  timelineItems(last:1, itemTypes:[CLOSED_EVENT]) {
+    nodes { ... on ClosedEvent { createdAt actor { __typename login } } }
+  }
 }`
 
 // PullRequestStat mirrors the StatBits fragment.
@@ -41,6 +51,22 @@ type PullRequestStat struct {
 	Reviews      struct {
 		Nodes []ReviewNode `json:"nodes"`
 	} `json:"reviews"`
+	TimelineItems struct {
+		Nodes []ClosedEventNode `json:"nodes"`
+	} `json:"timelineItems"`
+}
+
+// ClosedByLogin is who closed the pull request, or "" if nobody did or the
+// account has since been deleted.
+//
+// A merge closes a branch too, and GitHub does not always file an event for
+// that one, so this answers for the unmerged case only -- which is the case
+// the week cares about.
+func (p PullRequestStat) ClosedByLogin() string {
+	if len(p.TimelineItems.Nodes) == 0 {
+		return ""
+	}
+	return p.TimelineItems.Nodes[len(p.TimelineItems.Nodes)-1].Actor.LoginOr("")
 }
 
 // statSearchResult is one page of one alias.
