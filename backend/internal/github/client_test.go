@@ -1,0 +1,129 @@
+package github
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+// The page GitHub's edge serves when it hiccups. What used to end up on the
+// dashboard, verbatim.
+const nginx502 = `<html>
+<head><title>502 Bad Gateway</title></head>
+<body><center><h1>502 Bad Gateway</h1></center><hr><center>nginx</center></body>
+</html>`
+
+// flaky answers with statuses in order, then 200 for every request after that.
+func flaky(t *testing.T, statuses ...int) (*Client, *int) {
+	t.Helper()
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		i := calls
+		calls++
+		if i < len(statuses) && statuses[i] != http.StatusOK {
+			w.WriteHeader(statuses[i])
+			_, _ = w.Write([]byte(nginx502))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":{"viewer":{"login":"ada"}}}`))
+	}))
+	t.Cleanup(srv.Close)
+	cl := New(srv.URL, "token")
+	cl.retryWait = 0
+	return cl, &calls
+}
+
+// The bug this covers: one 502 out of GitHub's edge blanked the tab you land
+// on, when the next attempt would have worked.
+func TestDoRidesOutATransient502(t *testing.T) {
+	cl, calls := flaky(t, http.StatusBadGateway)
+
+	login, err := cl.Viewer(context.Background())
+	if err != nil {
+		t.Fatalf("Viewer: %v", err)
+	}
+	if login != "ada" {
+		t.Errorf("login = %q, want ada", login)
+	}
+	if *calls != 2 {
+		t.Errorf("sent %d requests, want 2", *calls)
+	}
+}
+
+func TestDoRetriesTheOtherGatewayStatuses(t *testing.T) {
+	cl, calls := flaky(t, http.StatusServiceUnavailable, http.StatusGatewayTimeout)
+
+	if _, err := cl.Viewer(context.Background()); err != nil {
+		t.Fatalf("Viewer: %v", err)
+	}
+	if *calls != 3 {
+		t.Errorf("sent %d requests, want 3", *calls)
+	}
+}
+
+func TestDoGivesUpAfterThreeAttempts(t *testing.T) {
+	cl, calls := flaky(t, http.StatusBadGateway, http.StatusBadGateway, http.StatusBadGateway)
+
+	_, err := cl.Viewer(context.Background())
+	if err == nil {
+		t.Fatal("want an error once the retries are spent")
+	}
+	if *calls != 3 {
+		t.Errorf("sent %d requests, want 3", *calls)
+	}
+	if strings.Contains(err.Error(), "nginx") || strings.Contains(err.Error(), "<html>") {
+		t.Errorf("the edge's HTML reached the message: %q", err)
+	}
+	if !strings.Contains(err.Error(), "502") {
+		t.Errorf("message should still say which status: %q", err)
+	}
+}
+
+// A 4xx is the request's own fault, so another one is a waste of everybody's
+// time -- and GitHub's JSON wording is worth keeping.
+func TestDoDoesNotRetryARejection(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`{"message":"Resource not accessible by integration"}`))
+	}))
+	t.Cleanup(srv.Close)
+	cl := New(srv.URL, "token")
+	cl.retryWait = 0
+
+	_, err := cl.Viewer(context.Background())
+	if err == nil {
+		t.Fatal("want an error")
+	}
+	if calls != 1 {
+		t.Errorf("sent %d requests, want 1", calls)
+	}
+	if !strings.Contains(err.Error(), "Resource not accessible") {
+		t.Errorf("GitHub's own wording was dropped: %q", err)
+	}
+}
+
+func TestDoReportsAnUnauthorizedTokenOnce(t *testing.T) {
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	t.Cleanup(srv.Close)
+	cl := New(srv.URL, "token")
+	cl.retryWait = 0
+
+	_, err := cl.Viewer(context.Background())
+	if !errors.Is(err, ErrUnauthorized) {
+		t.Fatalf("err = %v, want ErrUnauthorized", err)
+	}
+	if calls != 1 {
+		t.Errorf("sent %d requests, want 1", calls)
+	}
+}
