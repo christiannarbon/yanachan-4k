@@ -52,12 +52,22 @@ const en = {
     businessDay: 'since last business day (Fri)',
   },
 
-  /** Titles for the built-in tabs. Team and org tabs are named by their ref. */
+  /** Titles for the built-in views. Team and org views are named by their ref. */
   sections: {
     dashboard: 'Your week',
     mine: 'Your open PRs',
     review: 'Review requested from you',
     settings: 'Settings',
+  },
+
+  /** The side navigation: its landmark, its foldable headings, its drawer. */
+  nav: {
+    label: 'Sections',
+    queues: 'Queues',
+    teams: 'Teams',
+    orgs: 'Organizations',
+    open: 'Sections',
+    close: 'Close',
   },
 
   board: {
@@ -78,8 +88,8 @@ const en = {
     refreshing: 'Refreshing',
     githubReported: (warning: string) => `GitHub reported: ${warning}`,
     empty: 'Nothing here.',
-    /** Follows `empty` on a team or org tab. Rendered through Msg.vue. */
-    emptyScope: 'This tab covers {ref}.',
+    /** Follows `empty` on a team or org section. Rendered through Msg.vue. */
+    emptyScope: 'This section covers {ref}.',
     footer: (generated: string, limit: number) =>
       `Generated ${generated} · ${limit} pull requests per query`,
   },
@@ -87,12 +97,12 @@ const en = {
   /*
    * The landing dashboard: the viewer's own week.
    *
-   * The tone here is deliberate. This tab exists to be encouraging, so the
+   * The tone here is deliberate. This view exists to be encouraging, so the
    * copy states what happened and never what did not -- a week with nothing
    * merged gets `quietBody`, not a row of zeroes with an apology attached.
    */
   dashboard: {
-    /** Sub-heading under the tab title: the days the figures cover. */
+    /** Sub-heading under the title: the days the figures cover. */
     range: (from: string, to: string) => `${from} – ${to}`,
 
     /* The hero figure. 4K is a calorie count -- see the repository's name. */
@@ -150,7 +160,7 @@ const en = {
     /* A week with nothing in it. */
     quietTitle: 'A quiet week.',
     quietBody:
-      'Nothing opened, merged or reviewed in this window. The other tabs still know what is waiting for you.',
+      'Nothing opened, merged or reviewed in this window. The other sections still know what is waiting for you.',
   },
 
   pr: {
@@ -229,21 +239,21 @@ const en = {
   },
 
   settings: {
-    saved: 'Saved. The board reloads with the new tabs.',
+    saved: 'Saved. The board reloads with the new sections.',
     teamFormat: 'A team must be written as org/team-slug.',
     orgFormat: 'An organization is a bare login, without a slash.',
 
     teamsTitle: 'Teams to follow',
     /** Rendered through Msg.vue: {format} carries markup. */
     teamsExplain:
-      'Each team becomes its own tab, listing open pull requests where a review is requested from that team. Write them as {format}. Nothing is followed until you add it here.',
+      'Each team becomes its own section, listing open pull requests where a review is requested from that team. Write them as {format}. Nothing is followed until you add it here.',
     teamsEmpty: 'No teams followed.',
     teamAdd: 'Add team',
     teamsYours: 'Your teams:',
 
     orgsTitle: 'Organizations to follow',
     orgsExplain:
-      'Each organization becomes a tab listing open pull requests in that org that involve you and are not already shown on another tab.',
+      'Each organization becomes a section listing open pull requests in that org that involve you and are not already shown in another one.',
     orgsEmpty: 'No organizations followed.',
     orgAdd: 'Add organization',
     orgsYours: 'Your organizations:',
