@@ -1,17 +1,26 @@
 # Review queues
 
-Every tab other than [Your week](weekly-dashboard.md) is a queue: pull requests
-that are waiting on somebody, sorted so the ones waiting on *you* are at the top.
+Every section other than [Your week](weekly-dashboard.md) is a queue: pull
+requests that are waiting on somebody, sorted so the ones waiting on *you* are
+at the top.
 
-| Tab | What is on it |
+| Section | What is on it |
 | --- | --- |
 | **Your open PRs** | your branches — did anyone comment inside the activity window? |
 | **Review requested from you** | requested from you, or already reviewed by you |
-| **One tab per team** | pull requests where that team's review was requested |
-| **One tab per organization** | open PRs in that org that involve you and are not already on another tab |
+| **One per team** | pull requests where that team's review was requested |
+| **One per organization** | open PRs in that org that involve you and are not already in another section |
 
-Team and organization tabs appear only once you add them in
+Team and organization sections appear only once you add them in
 [Settings](settings.md).
+
+## Finding a queue
+
+The sections live in the rail down the left of the page, under three headings:
+your queues, then your teams, then your organizations. Click a heading to fold
+its list away — handy once you follow a dozen orgs — and the fold is remembered
+per browser. On a narrow window the rail becomes a drawer behind the
+**Sections** button in the header.
 
 ## The activity window
 
@@ -35,12 +44,12 @@ script's `--hours`. The exact arithmetic is in
 ## Grouped by repository
 
 A queue is drawn as one group per repository rather than one long column. Each
-heading carries the repository's name, how many of its pull requests are on the
-tab, and the attention dot if any of them need you.
+heading carries the repository's name, how many of its pull requests are in the
+section, and the attention dot if any of them need you.
 
 Click a heading to fold that repository away. Folds are remembered per browser
-and shared across the tabs, so a repository you would rather not look at stays
-folded on every queue and after a reload. **Collapse all**, beside the tab's
+and shared across the queues, so a repository you would rather not look at stays
+folded everywhere and after a reload. **Collapse all**, beside the section's
 own heading, folds every group at once — and becomes **Expand all** once they
 all are.
 

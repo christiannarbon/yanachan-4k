@@ -55,6 +55,15 @@ const ja: Messages = {
     settings: '設定',
   },
 
+  nav: {
+    label: 'セクション',
+    queues: 'キュー',
+    teams: 'チーム',
+    orgs: '組織',
+    open: 'セクション',
+    close: '閉じる',
+  },
+
   board: {
     summary: '{login} · 対象期間: {label}（{stamp} 以降）',
     needingAttention: (n: number) => `対応が必要 ${n} 件`,
@@ -70,7 +79,7 @@ const ja: Messages = {
     refreshing: '更新中',
     githubReported: (warning: string) => `GitHub からの報告: ${warning}`,
     empty: 'ここには何もありません。',
-    emptyScope: 'このタブの対象は {ref} です。',
+    emptyScope: 'このセクションの対象は {ref} です。',
     footer: (generated: string, limit: number) =>
       `生成: ${generated} · 1 クエリあたり ${limit} 件取得`,
   },
@@ -121,7 +130,7 @@ const ja: Messages = {
 
     quietTitle: '静かな一週間でした。',
     quietBody:
-      'この期間には作成・マージ・レビューがありませんでした。ほかのタブに、待っているものがあります。',
+      'この期間には作成・マージ・レビューがありませんでした。ほかのセクションに、待っているものがあります。',
   },
 
   pr: {
@@ -196,20 +205,20 @@ const ja: Messages = {
   },
 
   settings: {
-    saved: '保存しました。新しいタブでボードを再読み込みします。',
+    saved: '保存しました。新しいセクションでボードを再読み込みします。',
     teamFormat: 'チームは org/team-slug の形式で入力してください。',
     orgFormat: 'Organization はスラッシュを含まないログイン名です。',
 
     teamsTitle: '追跡するチーム',
     teamsExplain:
-      'チームごとにタブができ、そのチームにレビューが依頼されているオープンなプルリクエストを一覧します。{format} の形式で入力してください。ここに追加するまで、何も追跡しません。',
+      'チームごとにセクションができ、そのチームにレビューが依頼されているオープンなプルリクエストを一覧します。{format} の形式で入力してください。ここに追加するまで、何も追跡しません。',
     teamsEmpty: '追跡中のチームはありません。',
     teamAdd: 'チームを追加',
     teamsYours: 'あなたのチーム:',
 
     orgsTitle: '追跡する Organization',
     orgsExplain:
-      'Organization ごとにタブができ、その Organization のうちあなたが関わっており、他のタブにまだ出ていないオープンなプルリクエストを一覧します。',
+      'Organization ごとにセクションができ、その Organization のうちあなたが関わっており、他のセクションにまだ出ていないオープンなプルリクエストを一覧します。',
     orgsEmpty: '追跡中の Organization はありません。',
     orgAdd: 'Organization を追加',
     orgsYours: 'あなたの Organization:',

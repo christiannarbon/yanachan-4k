@@ -33,15 +33,18 @@ Yanami Anna**, of *負けヒロインが多すぎる！* (*Too Many Losing Heroi
 the patron saint of eating your feelings and losing with style, and she is why
 this repository is named the way it is. The `4K` came from 温水くん.
 
-## The tabs
+## The sections
 
-- **Your week** — the tab you land on: what you opened, merged, closed and
+Everything is reachable from the rail down the left, grouped so a long list of
+teams and organizations folds away.
+
+- **Your week** — where you land: what you opened, merged, closed and
   reviewed over the last seven days.
 - **Your open PRs** — did anyone comment inside the activity window?
 - **Review requested from you** — requested from you, or already reviewed by you.
-- **One tab per team** — pull requests where that team's review was requested.
-- **One tab per organization** — open PRs in that org that involve you and are
-  not already on another tab.
+- **One per team** — pull requests where that team's review was requested.
+- **One per organization** — open PRs in that org that involve you and are
+  not already in another section.
 
 Go backend, Vue 3 frontend, one binary, two languages, ten light themes.
 
@@ -56,7 +59,7 @@ Everything lives in [`docs/`](docs/).
 | [Getting started](docs/usage/getting-started.md) | prerequisites, build, the first screen |
 | [Authentication](docs/usage/authentication.md) | gh CLI, OAuth device flow, or a token from the environment |
 | [Your week](docs/usage/weekly-dashboard.md) | the landing tab, and the calorie figure |
-| [Review queues](docs/usage/review-queues.md) | the queue tabs, the indicators, the activity window |
+| [Review queues](docs/usage/review-queues.md) | the queues, the indicators, the activity window |
 | [Settings](docs/usage/settings.md) | teams, organizations, and where state lives |
 | [Themes](docs/usage/themes.md) · [Language](docs/usage/language.md) | ten palettes; English and Japanese |
 | [Docker](docs/usage/docker.md) · [Kubernetes](docs/usage/kubernetes.md) | running it somewhere else |
