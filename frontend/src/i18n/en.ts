@@ -87,6 +87,9 @@ const en = {
     refresh: 'Refresh',
     refreshing: 'Refreshing',
     githubReported: (warning: string) => `GitHub reported: ${warning}`,
+    /** A refresh that did not come back. GitHub's own wording goes under it. */
+    troubleTitle: 'Could not reach GitHub.',
+    tryAgain: 'Try again',
     empty: 'Nothing here.',
     /** Follows `empty` on a team or org section. Rendered through Msg.vue. */
     emptyScope: 'This section covers {ref}.',
