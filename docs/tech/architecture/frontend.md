@@ -111,7 +111,7 @@ palettes cost nothing until someone tries them.
 | `SideNav` | the navigation rail: the sections, grouped under foldable headings |
 | `StatsPanel` | the week's tiles, the calorie figure, the superlatives |
 | `WeekChart` | three strips over one shared scale, plus the visually-hidden table |
-| `RepoGroup` | one repository's cards under a heading that folds them away |
+| `RepoGroup` | one repository's cards under a heading that folds them away, in as many columns as the window fits |
 | `PrCard` | one pull request: indicators, the left border, the actors line |
 | `SettingsPanel` | teams, orgs, view settings, session |
 | `ThemePicker` / `LocalePicker` | the two pickers |
