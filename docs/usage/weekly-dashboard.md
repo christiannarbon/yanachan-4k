@@ -9,7 +9,7 @@ and this one is the opposite: a read-only look back at the last seven days.
 | --- | --- |
 | Opened | `author:you created:>=` the start of the window |
 | Merged | `author:you merged:>=` |
-| Closed | `author:you is:unmerged closed:>=` |
+| Closed | `author:you is:unmerged closed:>=`, plus anybody else's branch that you were the one to close |
 | Reviewed | `reviewed-by:you -author:you`, then filtered to reviews you actually submitted inside the window |
 
 Under those: reviews written, approvals given, repositories touched, and the
@@ -28,7 +28,7 @@ a Tuesday.
 
 `GET /api/stats?days=N` takes anything from 1 to 90; the tab asks for 7.
 
-## Two details before you read the numbers closely
+## Three details before you read the numbers closely
 
 - **Reviewed counts pull requests; the chart counts them per day.** The tile is
   distinct branches you reviewed. A strip's column is distinct branches you
@@ -37,6 +37,13 @@ a Tuesday.
   questions.
 - **Only submitted reviews count.** A review still open in your browser is
   `PENDING` to GitHub and is not work delivered, so it is skipped.
+- **Closed counts the branches you turned down, not only your own.** Closing a
+  dependency bump is triage, and it would otherwise be the one kind of work
+  here that leaves no trace — the branch is the bot's, so none of the other
+  counts can see it. Only closes GitHub attributes to you count: a bot
+  superseding its own pull request is not yours. Merging somebody else's branch
+  is still not counted, so that the lines and files figures stay your diffs
+  rather than renovate's.
 
 ## The calorie figure
 
