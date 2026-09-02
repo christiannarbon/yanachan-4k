@@ -4,9 +4,10 @@ import AuthGate from './components/AuthGate.vue'
 import CornerControls from './components/CornerControls.vue'
 import RepoGroup from './components/RepoGroup.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
+import SideNav from './components/SideNav.vue'
 import StatsPanel from './components/StatsPanel.vue'
-import TabBar from './components/TabBar.vue'
 import { groupByRepo, useRepoGroups } from './composables/useRepoGroups'
+import { useSideNav } from './composables/useSideNav'
 import Msg from './i18n/Msg.vue'
 import { useI18n } from './i18n'
 import { ApiError, api } from './lib/api'
@@ -14,8 +15,9 @@ import type { AuthStatus, Board, Settings, Stats } from './lib/types'
 
 const { t, ago, stamp, sectionTitle, windowLabel } = useI18n()
 const { isCollapsed, toggle: toggleRepo, setAll: setAllRepos } = useRepoGroups()
+const { drawerOpen } = useSideNav()
 
-/** Tabs that are not board sections, so a reload never navigates away from
+/** Views that are not board sections, so a reload never navigates away from
  *  them even when the section list changes underneath. */
 const FIXED_TABS = ['dashboard', 'settings']
 
@@ -40,11 +42,13 @@ const REFRESH_MS = 5 * 60 * 1000
 
 onMounted(async () => {
   clockTimer = window.setInterval(() => (now.value = Date.now()), 30_000)
+  window.addEventListener('keydown', onKeydown)
   await bootstrap()
 })
 
 onUnmounted(() => {
   if (clockTimer !== undefined) window.clearInterval(clockTimer)
+  window.removeEventListener('keydown', onKeydown)
   stopAutoRefresh()
 })
 
@@ -128,6 +132,7 @@ async function onSignOut() {
   stats.value = null
   settings.value = null
   activeTab.value = 'dashboard'
+  drawerOpen.value = false
   authStatus.value = await api.authStatus()
 }
 
@@ -135,6 +140,17 @@ async function onSettingsSaved(saved: Settings) {
   settings.value = saved
   // The limit and the followed refs feed both endpoints, so both reload.
   await refreshAll()
+}
+
+/** The navigation's one job. On a narrow window it also shuts the drawer,
+ *  which is covering the thing you just asked to see. */
+function onSelect(id: string) {
+  activeTab.value = id
+  drawerOpen.value = false
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') drawerOpen.value = false
 }
 
 const currentSection = computed(() => board.value?.sections.find((s) => s.id === activeTab.value) ?? null)
@@ -177,6 +193,13 @@ async function toggleOnlyActive() {
     <template v-else-if="board && settings">
       <header class="topbar">
         <div class="topbar-inner">
+          <button
+            class="ghost drawer-toggle"
+            :aria-expanded="drawerOpen"
+            @click="drawerOpen = !drawerOpen"
+          >
+            {{ drawerOpen ? t.nav.close : t.nav.open }}
+          </button>
           <div class="brand">
             <h1>{{ t.appName }}</h1>
             <p class="brand-sub soft">
@@ -191,15 +214,6 @@ async function toggleOnlyActive() {
               </template>
             </p>
           </div>
-          <CornerControls />
-        </div>
-        <div class="topbar-inner tabs-row">
-          <TabBar
-            class="tabs-strip"
-            :sections="board.sections"
-            :active-id="activeTab"
-            @select="activeTab = $event"
-          />
           <div class="row controls">
             <button
               v-if="activeTab !== 'dashboard' && activeTab !== 'settings'"
@@ -216,83 +230,94 @@ async function toggleOnlyActive() {
             <button class="primary" :disabled="refreshing" @click="refreshAll">
               {{ refreshing ? t.board.refreshing : t.board.refresh }}
             </button>
+            <CornerControls />
           </div>
         </div>
       </header>
 
-      <main class="content">
-        <p v-if="error" class="notice">{{ error }}</p>
-        <p v-if="board.warning" class="notice">{{ t.board.githubReported(board.warning) }}</p>
+      <div class="body">
+        <!-- The backdrop only exists while the rail is a drawer, and its only
+             job is to give the tap outside somewhere to land. -->
+        <div v-if="drawerOpen" class="scrim" @click="drawerOpen = false"></div>
 
-        <template v-if="activeTab === 'dashboard'">
-          <p v-if="statsError" class="notice">{{ statsError }}</p>
-          <StatsPanel v-if="stats" :stats="stats" />
-          <p v-else-if="!statsError" class="centered soft">{{ t.common.loading }}</p>
-          <p v-if="stats?.warning" class="notice">{{ t.board.githubReported(stats.warning) }}</p>
-        </template>
+        <aside class="rail" :class="{ 'rail-open': drawerOpen }">
+          <SideNav :sections="board.sections" :active-id="activeTab" @select="onSelect" />
+        </aside>
 
-        <SettingsPanel
-          v-else-if="activeTab === 'settings'"
-          :settings="settings"
-          :session-mode="board.authMode"
-          :login="board.login"
-          @saved="onSettingsSaved"
-          @signout="onSignOut"
-        />
+        <main class="content">
+          <p v-if="error" class="notice">{{ error }}</p>
+          <p v-if="board.warning" class="notice">{{ t.board.githubReported(board.warning) }}</p>
 
-        <template v-else-if="currentSection">
-          <div class="section-head">
-            <div>
-              <h2>{{ sectionTitle(currentSection) }}</h2>
-              <p class="soft">
-                {{ t.board.prCount(currentSection.total) }}
-                <template v-if="repoGroups.length > 1">
-                  · {{ t.board.repoCount(repoGroups.length) }}
-                </template>
-                <template v-if="currentSection.hot > 0">
-                  · {{ t.board.needingAttention(currentSection.hot) }}
-                </template>
-                <template v-if="settings.onlyActive && currentSection.total !== currentSection.entries.length">
-                  · {{ t.board.hiddenAsQuiet(currentSection.total - currentSection.entries.length) }}
-                </template>
-              </p>
+          <template v-if="activeTab === 'dashboard'">
+            <p v-if="statsError" class="notice">{{ statsError }}</p>
+            <StatsPanel v-if="stats" :stats="stats" />
+            <p v-else-if="!statsError" class="centered soft">{{ t.common.loading }}</p>
+            <p v-if="stats?.warning" class="notice">{{ t.board.githubReported(stats.warning) }}</p>
+          </template>
+
+          <SettingsPanel
+            v-else-if="activeTab === 'settings'"
+            :settings="settings"
+            :session-mode="board.authMode"
+            :login="board.login"
+            @saved="onSettingsSaved"
+            @signout="onSignOut"
+          />
+
+          <template v-else-if="currentSection">
+            <div class="section-head">
+              <div>
+                <h2>{{ sectionTitle(currentSection) }}</h2>
+                <p class="soft">
+                  {{ t.board.prCount(currentSection.total) }}
+                  <template v-if="repoGroups.length > 1">
+                    · {{ t.board.repoCount(repoGroups.length) }}
+                  </template>
+                  <template v-if="currentSection.hot > 0">
+                    · {{ t.board.needingAttention(currentSection.hot) }}
+                  </template>
+                  <template v-if="settings.onlyActive && currentSection.total !== currentSection.entries.length">
+                    · {{ t.board.hiddenAsQuiet(currentSection.total - currentSection.entries.length) }}
+                  </template>
+                </p>
+              </div>
+              <button v-if="repoGroups.length > 1" class="ghost fold-all" @click="toggleAllGroups">
+                {{ allCollapsed ? t.board.expandAll : t.board.collapseAll }}
+              </button>
             </div>
-            <button v-if="repoGroups.length > 1" class="ghost fold-all" @click="toggleAllGroups">
-              {{ allCollapsed ? t.board.expandAll : t.board.collapseAll }}
-            </button>
-          </div>
 
-          <p v-if="currentSection.error" class="notice">{{ currentSection.error }}</p>
+            <p v-if="currentSection.error" class="notice">{{ currentSection.error }}</p>
 
-          <div v-if="repoGroups.length" class="groups">
-            <RepoGroup
-              v-for="group in repoGroups"
-              :key="group.repo"
-              :repo="group.repo"
-              :entries="group.entries"
-              :hot="group.hot"
-              :collapsed="isCollapsed(group.repo)"
-              :kind="currentSection.kind"
-              :show-url="showUrls"
-              :now="now"
-              @toggle="toggleRepo(group.repo)"
-            />
-          </div>
-          <p v-else class="card empty-state soft">
-            {{ t.board.empty }}
-            <Msg
-              v-if="currentSection.kind === 'team' || currentSection.kind === 'org'"
-              :text="t.board.emptyScope"
-            >
-              <template #ref><span class="mono">{{ currentSection.ref }}</span></template>
-            </Msg>
-          </p>
-        </template>
+            <div v-if="repoGroups.length" class="groups">
+              <RepoGroup
+                v-for="group in repoGroups"
+                :key="group.repo"
+                :repo="group.repo"
+                :entries="group.entries"
+                :hot="group.hot"
+                :collapsed="isCollapsed(group.repo)"
+                :kind="currentSection.kind"
+                :show-url="showUrls"
+                :now="now"
+                @toggle="toggleRepo(group.repo)"
+              />
+            </div>
+            <p v-else class="card empty-state soft">
+              {{ t.board.empty }}
+              <Msg
+                v-if="currentSection.kind === 'team' || currentSection.kind === 'org'"
+                :text="t.board.emptyScope"
+              >
+                <template #ref><span class="mono">{{ currentSection.ref }}</span></template>
+              </Msg>
+            </p>
+          </template>
 
-        <footer class="foot soft">
-          {{ t.board.footer(ago(board.generatedAt, now), board.limit) }}
-        </footer>
-      </main>
+            <footer class="foot soft">
+              {{ t.board.footer(ago(board.generatedAt, now), board.limit) }}
+            </footer>
+        </main>
+      </div>
     </template>
 
     <p v-else class="centered notice">{{ error || t.common.somethingWrong }}</p>
@@ -300,34 +325,51 @@ async function toggleOnlyActive() {
 </template>
 
 <style scoped>
-.shell { min-height: 100%; display: flex; flex-direction: column; }
+/* An app shell rather than a scrolling page: the header stays put, and the
+   navigation and the board scroll independently underneath it. That is what
+   lets a rail of twenty organizations stay reachable from the bottom of a long
+   queue without either one dragging the other around. */
+.shell { --shell-max: 1360px; --rail: 236px; height: 100%; display: flex; flex-direction: column; }
 .centered { padding: 60px 20px; text-align: center; }
 
 .topbar {
+  flex: none;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
   z-index: 10;
 }
 .topbar-inner {
-  max-width: 1120px;
+  max-width: var(--shell-max);
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 14px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
 }
-.topbar-inner:first-child { padding-top: 16px; padding-bottom: 12px; }
 
-/* The tab strip and the board's actions share the second row: the strip takes
-   the width it can and scrolls within it, the actions stay pinned right and
-   sit on the strip's baseline. Narrow windows wrap them onto their own line. */
-.tabs-row { align-items: flex-end; padding-bottom: 0; }
-.tabs-strip { flex: 1 1 320px; min-width: 0; }
-.tabs-row .controls { padding-bottom: 8px; }
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: var(--shell-max);
+  margin: 0 auto;
+  display: flex;
+  align-items: stretch;
+}
+.rail {
+  flex: none;
+  width: var(--rail);
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.scrim { display: none; }
+/* The rail is the page's navigation on a wide window; the button that would
+   hide it only appears once there is no room to keep it open. */
+.drawer-toggle { display: none; }
 
 .brand h1 {
   margin: 0;
@@ -343,11 +385,10 @@ async function toggleOnlyActive() {
 .auto { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 
 .content {
-  max-width: 1120px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 20px;
   flex: 1 1 auto;
+  min-width: 0;
+  padding: 20px;
+  overflow-y: auto;
 }
 .section-head {
   margin-bottom: 14px;
@@ -365,4 +406,28 @@ async function toggleOnlyActive() {
 .groups { display: flex; flex-direction: column; }
 .empty-state { padding: 28px; text-align: center; }
 .foot { margin-top: 28px; font-size: 12px; text-align: center; }
+
+/* Below this the rail has nowhere to sit, so it becomes a drawer over the
+   board and the button in the header is the way in and out of it. */
+@media (max-width: 860px) {
+  .drawer-toggle { display: inline-flex; order: -1; }
+  .rail {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    box-shadow: var(--shadow-lg);
+    transform: translateX(-100%);
+    transition: transform var(--dur) var(--ease);
+  }
+  .rail-open { transform: none; }
+  .scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    background: var(--overlay);
+  }
+}
 </style>
