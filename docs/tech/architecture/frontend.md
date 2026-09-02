@@ -1,17 +1,17 @@
 # Frontend
 
 Vue 3 with `<script setup>`, TypeScript, Vite. No router, no state library, no
-component framework — the whole app is one page with a tab bar, and the state
-that outlives a component fits in two modules.
+component framework — the whole app is one page with a navigation rail down its
+left side, and the state that outlives a component fits in a few modules.
 
 ## Layout
 
 ```
 frontend/
-  src/components/      AuthGate, TabBar, RepoGroup, PrCard, StatsPanel,
+  src/components/      AuthGate, SideNav, RepoGroup, PrCard, StatsPanel,
                        WeekChart, SettingsPanel, ThemePicker, LocalePicker,
                        CornerControls
-  src/composables/     useTheme, useRepoGroups
+  src/composables/     useTheme, useRepoGroups, useSideNav
   src/i18n/            useI18n, Msg.vue, and the en / ja catalogs
   src/styles/          theme tokens, the generated palettes, the calorie meter layer
   src/lib/             API client, types, time helpers
@@ -36,11 +36,21 @@ the clock that "3 hours ago" is rendered against, so relative stamps do not go
 stale on a tab left open.
 
 `FIXED_TABS` (`dashboard`, `settings`) exist so a reload never navigates away
-from a tab when the section list changes underneath it.
+from a view when the section list changes underneath it.
 
-## The three pieces of global state
+## The shell
 
-All three are module-level refs with a `localStorage` mirror, all readable from
+`App.vue` lays the page out as an app shell rather than a scrolling page: a
+header that stays put, and under it a rail and the board, each scrolling on its
+own. A rail listing twenty organizations therefore stays reachable from the
+bottom of a long queue.
+
+Under 860px the rail has nowhere to sit, so it becomes a drawer over the board
+with a scrim behind it and a button in the header.
+
+## The four pieces of global state
+
+All four are module-level refs with a `localStorage` mirror, all readable from
 any component, none of them a store library.
 
 | Module | Holds | Key |
@@ -48,8 +58,9 @@ any component, none of them a store library.
 | `composables/useTheme.ts` | the active theme, written to `[data-art]` on the root | `yana.art` |
 | `i18n/index.ts` | the active locale and the catalog it selects | `yana.locale` |
 | `composables/useRepoGroups.ts` | which repository groups the viewer has folded away | `yana.collapsedRepos` |
+| `composables/useSideNav.ts` | which navigation headings the viewer has folded away | `yana.navGroups` |
 
-The first two read a pre-rename key as a fallback. All three wrap every
+The first two read a pre-rename key as a fallback. All of them wrap every
 `localStorage` access in `try/catch` — private windows and blocked site data
 throw rather than returning null.
 
@@ -67,7 +78,7 @@ palettes cost nothing until someone tries them.
 | Component | Responsibility |
 | --- | --- |
 | `AuthGate` | the first screen: what sign-in paths exist, and the device-flow polling |
-| `TabBar` | the tab strip, including the per-team and per-org tabs |
+| `SideNav` | the navigation rail: the sections, grouped under foldable headings |
 | `StatsPanel` | the week's tiles, the calorie figure, the superlatives |
 | `WeekChart` | three strips over one shared scale, plus the visually-hidden table |
 | `RepoGroup` | one repository's cards under a heading that folds them away |
