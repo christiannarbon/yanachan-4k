@@ -22,6 +22,18 @@ its list away — handy once you follow a dozen orgs — and the fold is remembe
 per browser. On a narrow window the rail becomes a drawer behind the
 **Sections** button in the header.
 
+Every section has its own address, so a queue can be bookmarked or sent to
+somebody, and back and forward work:
+
+| Path | Shows |
+| --- | --- |
+| `/dashboard` | [Your week](weekly-dashboard.md) |
+| `/prs/mine` | your open pull requests |
+| `/prs/review` | reviews requested from you |
+| `/prs/team/acme/platform` | a followed team |
+| `/prs/org/acme` | a followed organization |
+| `/settings` | [Settings](settings.md) |
+
 ## The activity window
 
 The window decides what counts as recent. Unchanged from the shell script this
