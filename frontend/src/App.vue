@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AuthGate from './components/AuthGate.vue'
 import CornerControls from './components/CornerControls.vue'
+import ErrorNotice from './components/ErrorNotice.vue'
 import RepoGroup from './components/RepoGroup.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import SideNav from './components/SideNav.vue'
@@ -126,6 +127,17 @@ async function loadStats() {
     if (!(e instanceof ApiError && e.status === 401)) {
       statsError.value = (e as Error).message
     }
+  }
+}
+
+/** A retry from a notice. It reloads only the half that failed, and borrows the
+ *  refresh flag so the button says it is going. */
+async function retry(half: 'board' | 'stats') {
+  refreshing.value = true
+  try {
+    await (half === 'board' ? loadBoard() : loadStats())
+  } finally {
+    refreshing.value = false
   }
 }
 
@@ -271,11 +283,16 @@ async function toggleOnlyActive() {
         </aside>
 
         <main class="content">
-          <p v-if="error" class="notice">{{ error }}</p>
+          <ErrorNotice v-if="error" :message="error" :busy="refreshing" @retry="retry('board')" />
           <p v-if="board.warning" class="notice">{{ t.board.githubReported(board.warning) }}</p>
 
           <template v-if="activeTab === 'dashboard'">
-            <p v-if="statsError" class="notice">{{ statsError }}</p>
+            <ErrorNotice
+              v-if="statsError"
+              :message="statsError"
+              :busy="refreshing"
+              @retry="retry('stats')"
+            />
             <StatsPanel v-if="stats" :stats="stats" />
             <p v-else-if="!statsError" class="centered soft">{{ t.common.loading }}</p>
             <p v-if="stats?.warning" class="notice">{{ t.board.githubReported(stats.warning) }}</p>

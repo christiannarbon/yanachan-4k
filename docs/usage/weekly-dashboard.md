@@ -66,6 +66,12 @@ meter's own yellow tile.
 The weights live in one place, `backend/internal/stats/types.go` — change them
 there and the whole dashboard follows.
 
+## When GitHub is having a moment
+
+GitHub answers a 502 from its edge now and again. The backend quietly sends the
+request again before giving up, and if it still fails the tab says so in one
+line with a **Try again** beside it, keeping whatever it last loaded.
+
 ## How the chart is drawn
 
 Three strips, one per metric, over one shared scale, all in the theme's primary

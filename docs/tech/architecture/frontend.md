@@ -30,7 +30,8 @@ stop. If authenticated, load settings and refresh.
 
 A refresh fires both endpoints together — `/api/board` and `/api/stats` — with
 their errors kept in **separate** refs. A failing week must not blank the
-board's own notice, and the dashboard tab reports its own trouble in place.
+board's own notice, and the dashboard reports its own trouble in place, through
+`ErrorNotice`, which retries only the half that failed.
 
 Optional auto-refresh runs every 5 minutes; a separate 30-second timer advances
 the clock that "3 hours ago" is rendered against, so relative stamps do not go
@@ -116,6 +117,7 @@ palettes cost nothing until someone tries them.
 | `SettingsPanel` | teams, orgs, view settings, session |
 | `ThemePicker` / `LocalePicker` | the two pickers |
 | `CornerControls` | the corner cluster the two pickers live in, shared with `AuthGate` |
+| `ErrorNotice` | a refresh that failed, with the one button worth offering |
 
 ## Where styling stops being a component's business
 

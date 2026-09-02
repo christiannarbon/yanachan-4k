@@ -78,6 +78,8 @@ const ja: Messages = {
     refresh: '更新',
     refreshing: '更新中',
     githubReported: (warning: string) => `GitHub からの報告: ${warning}`,
+    troubleTitle: 'GitHub に接続できませんでした。',
+    tryAgain: 'もう一度試す',
     empty: 'ここには何もありません。',
     emptyScope: 'このセクションの対象は {ref} です。',
     footer: (generated: string, limit: number) =>
