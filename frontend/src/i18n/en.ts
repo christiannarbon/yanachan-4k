@@ -58,7 +58,6 @@ const en = {
     dashboard: 'Your week',
     mine: 'Your open PRs',
     review: 'Review requested from you',
-    settings: 'Settings',
   },
 
   /** The side navigation: its landmark, its foldable headings, its drawer. */
@@ -243,6 +242,8 @@ const en = {
   },
 
   settings: {
+    /** The dialog's heading, and the name of the button in the corner. */
+    title: 'Settings',
     saved: 'Saved. The board reloads with the new sections.',
     teamFormat: 'A team must be written as org/team-slug.',
     orgFormat: 'An organization is a bare login, without a slash.',

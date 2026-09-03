@@ -53,7 +53,6 @@ const ja: Messages = {
     dashboard: '今週の成果',
     mine: '自分のオープン PR',
     review: 'レビュー依頼を受けた PR',
-    settings: '設定',
   },
 
   nav: {
@@ -208,6 +207,7 @@ const ja: Messages = {
   },
 
   settings: {
+    title: '設定',
     saved: '保存しました。新しいセクションでボードを再読み込みします。',
     teamFormat: 'チームは org/team-slug の形式で入力してください。',
     orgFormat: 'Organization はスラッシュを含まないログイン名です。',

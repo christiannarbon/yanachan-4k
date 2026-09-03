@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import AuthGate from './components/AuthGate.vue'
 import CornerControls from './components/CornerControls.vue'
 import ErrorNotice from './components/ErrorNotice.vue'
+import ModalDialog from './components/ModalDialog.vue'
 import RepoGroup from './components/RepoGroup.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 import SideNav from './components/SideNav.vue'
@@ -13,6 +14,7 @@ import { useSideNav } from './composables/useSideNav'
 import Msg from './i18n/Msg.vue'
 import { useI18n } from './i18n'
 import { ApiError, api } from './lib/api'
+import { isLegacySettingsPath } from './lib/routes'
 import type { AuthStatus, Board, Settings, Stats } from './lib/types'
 
 const { t, ago, stamp, sectionTitle, windowLabel } = useI18n()
@@ -20,9 +22,9 @@ const { isCollapsed, toggle: toggleRepo, setAll: setAllRepos } = useRepoGroups()
 const { drawerOpen } = useSideNav()
 const { activeSection: activeTab, go, startRouting } = useRouting()
 
-/** Views that are not board sections, so a reload never navigates away from
- *  them even when the section list changes underneath. */
-const FIXED_TABS = ['dashboard', 'settings']
+/** A view that is not a board section, so a reload never navigates away from
+ *  it even when the section list changes underneath. */
+const FIXED_TABS = ['dashboard']
 
 const authStatus = ref<AuthStatus | null>(null)
 const board = ref<Board | null>(null)
@@ -36,6 +38,9 @@ const error = ref('')
 const statsError = ref('')
 const autoRefresh = ref(false)
 const now = ref(Date.now())
+/** Settings is a dialog over the board rather than a page, so nothing outside
+ *  this flag has to know it is open. */
+const settingsOpen = ref(false)
 
 let clockTimer: number | undefined
 let refreshTimer: number | undefined
@@ -46,6 +51,8 @@ onMounted(async () => {
   clockTimer = window.setInterval(() => (now.value = Date.now()), 30_000)
   stopRouting = startRouting()
   window.addEventListener('keydown', onKeydown)
+  // Settings used to be a page; a bookmark to it opens the dialog instead.
+  settingsOpen.value = isLegacySettingsPath(location.pathname)
   // `/`, and anything the app cannot read, become the landing path rather than
   // sitting in the address bar naming a page nobody is looking at.
   go(activeTab.value, true)
@@ -151,6 +158,7 @@ async function onSignOut() {
   stats.value = null
   settings.value = null
   go('dashboard')
+  settingsOpen.value = false
   drawerOpen.value = false
   authStatus.value = await api.authStatus()
 }
@@ -169,7 +177,9 @@ function onSelect(id: string) {
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape') drawerOpen.value = false
+  // The dialog answers Escape itself, and the drawer it covers should not
+  // close behind it on the same press.
+  if (e.key === 'Escape' && !settingsOpen.value) drawerOpen.value = false
 }
 
 const currentSection = computed(() => board.value?.sections.find((s) => s.id === activeTab.value) ?? null)
@@ -184,11 +194,9 @@ watch(
     const name =
       activeTab.value === 'dashboard'
         ? t.value.sections.dashboard
-        : activeTab.value === 'settings'
-          ? t.value.sections.settings
-          : currentSection.value
-            ? sectionTitle(currentSection.value)
-            : ''
+        : currentSection.value
+          ? sectionTitle(currentSection.value)
+          : ''
     document.title = name ? `${name} · ${t.value.appName}` : t.value.appName
   },
   { immediate: true },
@@ -254,7 +262,7 @@ async function toggleOnlyActive() {
           </div>
           <div class="row controls">
             <button
-              v-if="activeTab !== 'dashboard' && activeTab !== 'settings'"
+              v-if="activeTab !== 'dashboard'"
               class="ghost"
               :class="{ toggled: settings.onlyActive }"
               @click="toggleOnlyActive"
@@ -268,7 +276,7 @@ async function toggleOnlyActive() {
             <button class="primary" :disabled="refreshing" @click="refreshAll">
               {{ refreshing ? t.board.refreshing : t.board.refresh }}
             </button>
-            <CornerControls />
+            <CornerControls with-settings @settings="settingsOpen = true" />
           </div>
         </div>
       </header>
@@ -297,15 +305,6 @@ async function toggleOnlyActive() {
             <p v-else-if="!statsError" class="centered soft">{{ t.common.loading }}</p>
             <p v-if="stats?.warning" class="notice">{{ t.board.githubReported(stats.warning) }}</p>
           </template>
-
-          <SettingsPanel
-            v-else-if="activeTab === 'settings'"
-            :settings="settings"
-            :session-mode="board.authMode"
-            :login="board.login"
-            @saved="onSettingsSaved"
-            @signout="onSignOut"
-          />
 
           <template v-else-if="currentSection">
             <div class="section-head">
@@ -361,6 +360,20 @@ async function toggleOnlyActive() {
           </footer>
         </main>
       </div>
+
+      <ModalDialog
+        v-if="settingsOpen"
+        :title="t.settings.title"
+        @close="settingsOpen = false"
+      >
+        <SettingsPanel
+          :settings="settings"
+          :session-mode="board.authMode"
+          :login="board.login"
+          @saved="onSettingsSaved"
+          @signout="onSignOut"
+        />
+      </ModalDialog>
     </template>
 
     <p v-else class="centered notice">{{ error || t.common.somethingWrong }}</p>

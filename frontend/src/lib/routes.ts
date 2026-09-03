@@ -9,7 +9,9 @@
  *   /prs/review                         reviews requested from you
  *   /prs/team/acme/platform             a followed team
  *   /prs/org/acme                       a followed organization
- *   /settings                           settings
+ *
+ * Settings is not among them: it is a dialog over whatever you were looking
+ * at, not a page, so it has nothing to write down.
  *
  * A section id arrives from the backend as `mine`, `review`, `team:org/slug` or
  * `org:login`, and the colon is the only part that needs translating: a team's
@@ -22,7 +24,6 @@ export const DEFAULT_PATH = '/dashboard'
 /** The path that shows a section, ready for history.pushState. */
 export function pathForSection(id: string): string {
   if (id === 'dashboard') return '/dashboard'
-  if (id === 'settings') return '/settings'
   if (id.startsWith('team:')) return `/prs/team/${id.slice('team:'.length)}`
   if (id.startsWith('org:')) return `/prs/org/${id.slice('org:'.length)}`
   // mine, review, and any kind added later.
@@ -36,7 +37,6 @@ export function pathForSection(id: string): string {
 export function sectionForPath(pathname: string): string | null {
   const path = pathname.replace(/\/+$/, '')
   if (path === '' || path === '/dashboard') return 'dashboard'
-  if (path === '/settings') return 'settings'
   if (!path.startsWith('/prs')) return null
 
   const rest = path.slice('/prs'.length).replace(/^\//, '')
@@ -47,4 +47,12 @@ export function sectionForPath(pathname: string): string | null {
   // not a queue id and the path is not one this app wrote.
   if (rest.includes('/')) return null
   return decodeURIComponent(rest)
+}
+
+/**
+ * Whether a path is the address settings used to have, back when it was a page.
+ * A bookmark to it still opens settings -- as the dialog, over the dashboard.
+ */
+export function isLegacySettingsPath(pathname: string): boolean {
+  return pathname.replace(/\/+$/, '') === '/settings'
 }
