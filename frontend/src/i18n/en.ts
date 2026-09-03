@@ -21,6 +21,7 @@ const en = {
     somethingWrong: 'Something went wrong.',
     remove: 'Remove',
     copy: 'Copy',
+    close: 'Close',
   },
 
   time: {

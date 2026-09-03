@@ -20,6 +20,7 @@ const ja: Messages = {
     somethingWrong: '問題が発生しました。',
     remove: '削除',
     copy: 'コピー',
+    close: '閉じる',
   },
 
   time: {
