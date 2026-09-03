@@ -90,9 +90,11 @@ function onClick(e: MouseEvent) {
 }
 .head h2 { margin: 0; font-size: 15px; color: var(--heading); }
 
+/* A bare scroll region: the gutters belong to whatever is put inside it, so a
+   strip that has to reach both edges -- a row of actions along the foot -- can
+   do so without fighting a padding it did not ask for. */
 .body {
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 var(--space-5);
 }
 </style>
