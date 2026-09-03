@@ -221,7 +221,7 @@ const modeLabel = computed<string>(() => {
 
 <style scoped>
 .settings { display: flex; flex-direction: column; }
-.block { padding: var(--space-5) 0; }
+.block { padding: var(--space-5); }
 .block + .block { border-top: 1px solid var(--border); }
 .block h2 { margin: 0 0 8px; font-size: 14px; color: var(--heading); }
 .block > p { margin: 0 0 12px; }
