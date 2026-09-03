@@ -1,13 +1,14 @@
 # Settings
 
-The Settings tab. Everything here is stored on the server, in the state
-directory, and applies to whoever can reach the port.
+The settings dialog, opened by the gear in the top right corner. Everything
+here is stored on the server, in the state directory, and applies to whoever
+can reach the port.
 
 ## Teams to follow
 
 Written `org/team-slug`, matching GitHub's `team-review-requested:` search
-qualifier. Each one becomes a tab listing open pull requests where a review is
-requested from that team.
+qualifier. Each one becomes a section listing open pull requests where a review
+is requested from that team.
 
 The panel offers your actual teams as one-click suggestions, read from your
 GitHub memberships. If that list fails to load — a token without `read:org`,

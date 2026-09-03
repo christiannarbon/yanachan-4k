@@ -36,7 +36,7 @@ as given, cutoff at `now.Add(-hours)`.
 It arrives from two places, in this order of precedence:
 
 1. `GET /api/board?hours=N` — a query parameter, accepted for `0 < N <= 720`.
-2. `settings.WindowHours` — the Settings tab, same bound, `0` meaning the rule.
+2. `settings.WindowHours` — the settings dialog, same bound, `0` meaning the rule.
 
 720 is `state.MaxWindowHours`, 30 days. The bound exists because
 hours-to-`Duration` multiplication overflows outright somewhere past 292 years,

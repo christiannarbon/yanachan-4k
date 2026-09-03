@@ -1,4 +1,11 @@
 <script setup lang="ts">
+/**
+ * Everything you can configure, as the body of the settings dialog.
+ *
+ * It is one column of sections rather than a page of cards: the dialog is
+ * already a raised panel, and stacking cards inside it only draws boxes within
+ * a box. A hairline between sections says the same thing more quietly.
+ */
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from '../i18n'
 import Msg from '../i18n/Msg.vue'
@@ -104,7 +111,7 @@ const modeLabel = computed<string>(() => {
     <p v-if="error" class="notice">{{ error }}</p>
     <p v-if="message" class="ok-note">{{ t.settings.saved }}</p>
 
-    <section class="card block">
+    <section class="block">
       <h2>{{ t.settings.teamsTitle }}</h2>
       <p class="soft">
         <Msg :text="t.settings.teamsExplain">
@@ -135,7 +142,7 @@ const modeLabel = computed<string>(() => {
       </div>
     </section>
 
-    <section class="card block">
+    <section class="block">
       <h2>{{ t.settings.orgsTitle }}</h2>
       <p class="soft">{{ t.settings.orgsExplain }}</p>
       <ul class="chips" v-if="draft.orgs.length">
@@ -166,7 +173,7 @@ const modeLabel = computed<string>(() => {
       </p>
     </section>
 
-    <section class="card block">
+    <section class="block">
       <h2>{{ t.settings.viewTitle }}</h2>
       <div class="field">
         <label for="limit">{{ t.settings.limitLabel }}</label>
@@ -199,7 +206,7 @@ const modeLabel = computed<string>(() => {
       </button>
     </section>
 
-    <section class="card block">
+    <section class="block">
       <h2>{{ t.settings.sessionTitle }}</h2>
       <p class="soft">
         <Msg :text="t.settings.sessionLine">
@@ -213,18 +220,22 @@ const modeLabel = computed<string>(() => {
 </template>
 
 <style scoped>
-.settings { display: flex; flex-direction: column; gap: 14px; padding: 18px 0 40px; }
-.block { padding: 18px 20px; }
-.block h2 { margin: 0 0 8px; font-size: 15px; color: var(--heading); }
+.settings { display: flex; flex-direction: column; }
+.block { padding: var(--space-5) 0; }
+.block + .block { border-top: 1px solid var(--border); }
+.block h2 { margin: 0 0 8px; font-size: 14px; color: var(--heading); }
 .block > p { margin: 0 0 12px; }
 
+/* The two notes sit above the first section, so they carry their own gap
+   rather than inheriting one from a stack that no longer has gaps. */
+.settings > .notice,
+.settings > .ok-note { margin: var(--space-5) 0 0; }
 .ok-note {
   border-radius: var(--radius);
   padding: 10px 14px;
   border: 1px solid var(--fact-line);
   background: var(--fact-soft);
   color: var(--on-fact-soft);
-  margin: 0;
 }
 
 .chips { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0 0 12px; }
