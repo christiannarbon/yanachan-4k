@@ -10,8 +10,8 @@ modules.
 ```
 frontend/
   src/components/      AuthGate, SideNav, RepoGroup, PrCard, StatsPanel,
-                       WeekChart, SettingsPanel, ThemePicker, LocalePicker,
-                       CornerControls
+                       WeekChart, SettingsPanel, ModalDialog, ThemePicker,
+                       LocalePicker, CornerControls
   src/composables/     useTheme, useRepoGroups, useSideNav, useRouting
   src/i18n/            useI18n, Msg.vue, and the en / ja catalogs
   src/styles/          theme tokens, the generated palettes, the calorie meter layer
@@ -37,8 +37,9 @@ Optional auto-refresh runs every 5 minutes; a separate 30-second timer advances
 the clock that "3 hours ago" is rendered against, so relative stamps do not go
 stale on a tab left open.
 
-`FIXED_TABS` (`dashboard`, `settings`) exist so a reload never navigates away
-from a view when the section list changes underneath it.
+`FIXED_TABS` (`dashboard`) exists so a reload never navigates away from a view
+when the section list changes underneath it. Settings is not in it: it is a
+dialog over the board, held open by one flag and no path.
 
 ## Paths
 
@@ -51,7 +52,10 @@ down, so every view has a link that survives a reload:
 | `/prs/mine`, `/prs/review` | the two built-in queues |
 | `/prs/team/<org>/<slug>` | a followed team |
 | `/prs/org/<login>` | a followed organization |
-| `/settings` | settings |
+
+Settings has no path of its own — it is a dialog, not a view. `/settings` was
+one before, so `isLegacySettingsPath` still opens the dialog for a bookmark to
+it and the address corrects itself to `/dashboard`.
 
 `lib/routes.ts` is the mapping and nothing else; `composables/useRouting.ts`
 holds the ref and talks to the history API. A click pushes an entry, so back
@@ -114,9 +118,10 @@ palettes cost nothing until someone tries them.
 | `WeekChart` | three strips over one shared scale, plus the visually-hidden table |
 | `RepoGroup` | one repository's cards under a heading that folds them away, in as many columns as the window fits |
 | `PrCard` | one pull request: indicators, the left border, the actors line |
-| `SettingsPanel` | teams, orgs, view settings, session |
+| `SettingsPanel` | teams, orgs, view settings, session — the dialog's body |
+| `ModalDialog` | a titled panel over the page, wrapping the browser's `<dialog>` |
 | `ThemePicker` / `LocalePicker` | the two pickers |
-| `CornerControls` | the corner cluster the two pickers live in, shared with `AuthGate` |
+| `CornerControls` | the corner cluster: the two pickers, plus the gear that opens settings. Shared with `AuthGate`, which asks for no gear |
 | `ErrorNotice` | a refresh that failed, with the one button worth offering |
 
 ## Where styling stops being a component's business

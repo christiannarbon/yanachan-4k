@@ -207,7 +207,7 @@ type Membership struct {
 }
 
 // Memberships lists the orgs and teams the viewer belongs to, used to offer
-// suggestions in the settings tab. Requires the read:org scope.
+// suggestions in the settings dialog. Requires the read:org scope.
 func (c *Client) Memberships(ctx context.Context) (Membership, error) {
 	const q = `query {
   viewer {

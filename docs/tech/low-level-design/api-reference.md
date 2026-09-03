@@ -115,7 +115,7 @@ took effect.
 
 ### `GET /api/suggestions`
 
-The orgs and teams the viewer belongs to, for the Settings tab's one-click
+The orgs and teams the viewer belongs to, for the settings dialog's one-click
 suggestions.
 
 ```json

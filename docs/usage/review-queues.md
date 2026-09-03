@@ -20,7 +20,9 @@ The sections live in the rail down the left of the page, under three headings:
 your queues, then your teams, then your organizations. Click a heading to fold
 its list away — handy once you follow a dozen orgs — and the fold is remembered
 per browser. On a narrow window the rail becomes a drawer behind the
-**Sections** button in the header.
+**Sections** button in the header. Settings is not in the rail: it is the gear
+in the top right corner, beside the theme and language controls, and it opens
+as a dialog over whatever you were reading.
 
 Every section has its own address, so a queue can be bookmarked or sent to
 somebody, and back and forward work:
@@ -32,7 +34,9 @@ somebody, and back and forward work:
 | `/prs/review` | reviews requested from you |
 | `/prs/team/acme/platform` | a followed team |
 | `/prs/org/acme` | a followed organization |
-| `/settings` | [Settings](settings.md) |
+
+`/settings` was one of these before it became a dialog. The address still opens
+settings, over the dashboard.
 
 ## The activity window
 

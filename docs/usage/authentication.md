@@ -46,7 +46,7 @@ The token is written to `session.json` in the state directory with `0600`
 permissions and is sent only to `api.github.com`. It is never returned to the
 browser — there is a test that asserts exactly that.
 
-**Sign out** in the Settings tab deletes the file.
+**Sign out** in the settings dialog deletes the file.
 
 ## There is no login
 
