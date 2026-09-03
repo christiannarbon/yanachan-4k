@@ -108,9 +108,6 @@ const modeLabel = computed<string>(() => {
 
 <template>
   <div class="settings">
-    <p v-if="error" class="notice">{{ error }}</p>
-    <p v-if="message" class="ok-note">{{ t.settings.saved }}</p>
-
     <section class="block">
       <h2>{{ t.settings.teamsTitle }}</h2>
       <p class="soft">
@@ -201,9 +198,6 @@ const modeLabel = computed<string>(() => {
           {{ t.settings.showUrls }}
         </label>
       </div>
-      <button class="primary" :disabled="saving" @click="save">
-        {{ saving ? t.settings.saving : t.settings.save }}
-      </button>
     </section>
 
     <section class="block">
@@ -216,6 +210,14 @@ const modeLabel = computed<string>(() => {
       </p>
       <button class="accent" @click="emit('signout')">{{ t.settings.signOut }}</button>
     </section>
+
+    <div class="actions">
+      <p v-if="error" class="notice">{{ error }}</p>
+      <p v-else-if="message" class="ok-note">{{ t.settings.saved }}</p>
+      <button class="primary" :disabled="saving" @click="save">
+        {{ saving ? t.settings.saving : t.settings.save }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -226,17 +228,36 @@ const modeLabel = computed<string>(() => {
 .block h2 { margin: 0 0 8px; font-size: 14px; color: var(--heading); }
 .block > p { margin: 0 0 12px; }
 
-/* The two notes sit above the first section, so they carry their own gap
-   rather than inheriting one from a stack that no longer has gaps. */
-.settings > .notice,
-.settings > .ok-note { margin: var(--space-5) 0 0; }
-.ok-note {
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  border: 1px solid var(--fact-line);
-  background: var(--fact-soft);
-  color: var(--on-fact-soft);
+/* Saving is the panel's one action, so it leaves the View section -- where it
+   looked like it saved only that -- for a strip along the foot of the dialog.
+   Sticky, so a long panel never asks you to scroll to reach it. */
+.actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border);
+  background: var(--panel-raised);
 }
+
+/* Whatever the last save had to say, beside the button that caused it. Both
+   are lines of text here rather than blocks: the strip is already set apart,
+   and a box inside it would only crowd the button. */
+.actions > p {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 12.5px;
+}
+.actions .notice { padding: 0; border: 0; background: none; }
+.actions .ok-note { color: var(--on-fact-soft); }
+/* The note takes the width that is left and wraps; the button keeps its own
+   label on one line. */
+.actions button { white-space: nowrap; }
 
 .chips { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0 0 12px; }
 .chip {
