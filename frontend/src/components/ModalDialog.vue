@@ -35,7 +35,9 @@ function onClick(e: MouseEvent) {
     @cancel.prevent="emit('close')"
     @click="onClick"
   >
-    <div class="panel">
+    <!-- Focus starts on the panel rather than on the first control, which
+         would otherwise be Close, wearing a focus ring and looking pressed. -->
+    <div class="panel" tabindex="-1" autofocus>
       <header class="head">
         <h2 :id="titleId">{{ title }}</h2>
         <button class="ghost" @click="emit('close')">{{ t.common.close }}</button>
@@ -73,6 +75,7 @@ function onClick(e: MouseEvent) {
   box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
+.panel:focus { outline: none; }
 
 /* The title stays put while the body scrolls under it, so a long panel never
    leaves you scrolling to find out what you have open. */
