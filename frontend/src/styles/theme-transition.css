@@ -1,0 +1,62 @@
+/*
+ * The sweep that carries one theme into the next.
+ *
+ * Switching palettes used to be a single repaint: every colour on the page
+ * changed between two frames, which is fast but reads as a glitch rather than
+ * as a choice. This animates the swap instead -- the new theme wipes in from
+ * the left edge behind a soft gradient, so the eye follows one front across
+ * the page rather than trying to take in ten changes at once.
+ *
+ * It is built on view transitions, so the old page is a snapshot the browser
+ * took for us and no component knows any of this is happening. Everything here
+ * is behind [data-theme-sweep], set by composables/useThemeTransition.ts only
+ * for the duration of a theme change: any other view transition added later
+ * gets the browser's own cross-fade, not this.
+ *
+ * Browsers without view transitions, and anyone who asked for less motion,
+ * never reach these rules -- the composable swaps the palette outright.
+ */
+
+/* The default cross-fade blends the two snapshots with plus-lighter, which
+   would wash the overlap out. Here the new theme is simply on top of the old
+   one and the mask decides how much of it shows, so both go back to painting
+   normally. */
+html[data-theme-sweep]::view-transition-image-pair(root) {
+  isolation: auto;
+}
+
+html[data-theme-sweep]::view-transition-old(root),
+html[data-theme-sweep]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* The old palette holds still underneath for the whole sweep. Fading it out
+   as well would leave a pale band where the two meet. */
+html[data-theme-sweep]::view-transition-old(root) {
+  z-index: 0;
+}
+
+/*
+ * The mask is three viewports wide: an opaque third, a ramp, then nothing. At
+ * mask-position 100% the page sees the empty end and the new theme is hidden;
+ * at 0% it sees the opaque end and the new theme is all there is. Sliding
+ * between the two walks the ramp across the page from left to right.
+ *
+ * The ramp runs from 33.34% to 45% of the mask, so the gradient itself is
+ * roughly a third of the window wide -- soft enough to read as a wash rather
+ * than a hard wipe.
+ */
+html[data-theme-sweep]::view-transition-new(root) {
+  z-index: 1;
+  mask-image: linear-gradient(to right, #000 0 33.34%, #0000 45% 100%);
+  mask-size: 300% 100%;
+  mask-repeat: no-repeat;
+  mask-position: 100% 0;
+  animation: theme-sweep var(--dur-sweep) var(--ease-sweep) forwards;
+}
+
+@keyframes theme-sweep {
+  from { mask-position: 100% 0; }
+  to { mask-position: 0 0; }
+}
