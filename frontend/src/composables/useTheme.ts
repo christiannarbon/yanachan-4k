@@ -4,12 +4,14 @@
  *
  * There is one axis. The app is light-mode only by design, so a theme is a
  * single palette rather than a light/dark pair -- see styles/art-themes.css.
- * The choice persists per browser.
+ * The choice persists per browser, and changing it sweeps rather than snaps --
+ * see useThemeTransition.ts.
  */
 
-import { ref, computed, watch } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 
 import themeMeta from '../styles/art-themes.meta.json'
+import { sweepThemeChange } from './useThemeTransition'
 
 export interface ArtTheme {
   /** Slug, matching the [data-art] value in art-themes.css. */
@@ -112,8 +114,28 @@ watch(art, (v) => {
 export function useTheme() {
   const current = computed(() => themes.find((t) => t.id === art.value) ?? themes[0])
 
+  /**
+   * Changes the theme behind the sweep in useThemeTransition.
+   *
+   * The faces are asked for first, outside the transition, so a theme being
+   * seen for the first time has its webfonts in flight before the sweep starts
+   * rather than swapping type a beat after the colours have landed.
+   *
+   * `art` is written inside the transition and then awaited: the watcher above
+   * is what puts [data-art] on the document, and it runs on the next tick, so
+   * without the await the browser would snapshot the new page before the
+   * palette had actually changed.
+   */
   function setArt(id: string) {
-    art.value = id
+    if (id === art.value) return
+
+    const theme = themes.find((t) => t.id === id)
+    if (theme) ensureFonts(theme)
+
+    sweepThemeChange(async () => {
+      art.value = id
+      await nextTick()
+    })
   }
 
   return { art, themes, current, setArt }
