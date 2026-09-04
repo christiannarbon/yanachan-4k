@@ -14,6 +14,16 @@ until you try them.
 
 All themes are light. There is no dark mode, by design.
 
+## The change itself
+
+Picking a theme does not snap. The new palette wipes in from the left edge
+behind a soft gradient, about two thirds of a second wide, so the change reads
+as one movement across the page rather than ten colours swapping at once.
+
+It is decoration and nothing depends on it. A browser without view transitions
+changes the palette outright, and so does the app if your system asks for
+reduced motion.
+
 ## Yanami's palette
 
 Not invented. Every colour is one the official 負けヒロインが多すぎる！ site
