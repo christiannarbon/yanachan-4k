@@ -47,9 +47,18 @@ const headings = computed(() => {
   })
 })
 
-function choose(id: string) {
-  setArt(id)
+/**
+ * The menu closes first, and only then does the theme change.
+ *
+ * The sweep snapshots the page as it stands, so setting the theme while the
+ * menu is still on screen would drag an open list across the window and drop
+ * it at the far edge. A tick is enough for the list to be gone from both
+ * frames, and is not long enough to feel like a delay.
+ */
+async function choose(id: string) {
   open.value = false
+  await nextTick()
+  setArt(id)
 }
 
 function onDocPointer(e: PointerEvent) {
