@@ -7,11 +7,12 @@ ship an unreadable pair of colours.
 
 ```
 frontend/src/styles/theme.css                 what a theme does not change: spacing, motion, fallbacks
+frontend/src/styles/theme-transition.css      the sweep from one palette to the next
 frontend/src/styles/art-themes.css            GENERATED — one palette per theme, keyed by [data-art]
 frontend/src/styles/art-themes.meta.json      names, subtitles, fonts and swatches for the picker
 frontend/src/styles/art-themes.audit.md       GENERATED — the contrast audit for every theme
 frontend/src/styles/calorie-meter.css         the Yanami theme's own drawing (see below)
-frontend/scripts/gen-art-themes.mjs           regenerates the first, third and fourth
+frontend/scripts/gen-art-themes.mjs           regenerates art-themes.css, the meta and the audit
 frontend/scripts/color.mjs                    the colour maths the generator uses
 ```
 
@@ -85,6 +86,25 @@ somebody tries them.
 There is one axis. The app is light-only by design, so a theme is a single
 palette rather than a light/dark pair, and there is no `prefers-color-scheme`
 block anywhere.
+
+## The sweep
+
+A palette change is a whole-page repaint, which is instant and reads as a
+glitch. `composables/useThemeTransition.ts` runs it inside a view transition
+instead: the browser snapshots the old page, the attribute changes, and the new
+page wipes in from the left behind a gradient mask three viewports wide, slid
+from one end to the other. The animation is in `theme-transition.css`; the
+duration and easing are `--dur-sweep` and `--ease-sweep` in `theme.css`.
+
+Every rule is behind `[data-theme-sweep]`, set on the document root only for the
+length of a theme change, so a view transition added anywhere else later gets
+the browser's own cross-fade rather than this one.
+
+Two ways out, both silent: a browser without `startViewTransition`, and a
+`prefers-reduced-motion: reduce` that is checked at the moment of the change.
+Either one swaps the palette outright, which is what the app did before any of
+this existed. The picker also closes itself a tick before it sets the theme, so
+an open menu is in neither snapshot.
 
 ## Adding a theme
 
