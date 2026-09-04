@@ -49,6 +49,13 @@
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
   --dur: 140ms;
 
+  /* The theme sweep is the one long animation in the app: it crosses the whole
+     window, so it needs room to be read as a movement rather than a flicker.
+     Its easing leaves quickly and lands slowly, the way a page settles.
+     See styles/theme-transition.css. */
+  --dur-sweep: 620ms;
+  --ease-sweep: cubic-bezier(0.32, 0.72, 0.28, 1);
+
   /* --- last-resort values ----------------------------------------------- */
 
   /* Overridden wholesale by whichever [data-art] theme is active. These exist
