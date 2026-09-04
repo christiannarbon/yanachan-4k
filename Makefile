@@ -40,6 +40,11 @@ PF_PORT    ?= $(API_PORT)
 PF_PID     := .k8s-portforward.pid
 PF_LOG     := .k8s-portforward.log
 
+# A minikube profile is not always called "minikube" -- the kube context carries
+# the profile name, so ask minikube whether it owns the context rather than
+# matching the name. Expects $$ctx to be set by the recipe using it.
+IS_MINIKUBE = minikube profile list -o json 2>/dev/null | grep -q '"Name":"'"$$ctx"'"'
+
 .DEFAULT_GOAL := help
 
 .PHONY: help
@@ -210,21 +215,28 @@ k8s-up: ## Bring the whole Kubernetes stack up and open a tunnel to it
 .PHONY: k8s-cluster
 k8s-cluster: ## Make sure a local cluster is running
 	@ctx=$$(kubectl config current-context 2>/dev/null || echo none); \
-	case "$$ctx" in \
-		minikube) minikube status >/dev/null 2>&1 || minikube start ;; \
-		kind-*)   kind get clusters | grep -q "$${ctx#kind-}" || { echo "kind cluster $${ctx#kind-} is gone" >&2; exit 1; } ;; \
-		none)     echo "no kube context; start minikube or point kubectl at a cluster" >&2; exit 1 ;; \
-		*)        echo "  context $$ctx is not minikube or kind: $(IMAGE) must be pullable from it" ;; \
-	esac
+	if [ "$$ctx" = none ]; then \
+		echo "no kube context; start minikube or point kubectl at a cluster" >&2; exit 1; \
+	elif $(IS_MINIKUBE); then \
+		minikube -p "$$ctx" status >/dev/null 2>&1 || minikube -p "$$ctx" start; \
+	else \
+		case "$$ctx" in \
+			kind-*) kind get clusters | grep -q "$${ctx#kind-}" || { echo "kind cluster $${ctx#kind-} is gone" >&2; exit 1; } ;; \
+			*)      echo "  context $$ctx is not minikube or kind: $(IMAGE) must be pullable from it" ;; \
+		esac; \
+	fi
 
 .PHONY: k8s-load
 k8s-load: images ## Build the image and push it into the local cluster
 	@ctx=$$(kubectl config current-context 2>/dev/null); \
-	case "$$ctx" in \
-		minikube) minikube image load $(IMAGE) ;; \
-		kind-*)   kind load docker-image $(IMAGE) --name "$${ctx#kind-}" ;; \
-		*)        echo "  context $$ctx is not minikube or kind; push $(IMAGE) to a registry yourself" ;; \
-	esac
+	if $(IS_MINIKUBE); then \
+		minikube -p "$$ctx" image load $(IMAGE); \
+	else \
+		case "$$ctx" in \
+			kind-*) kind load docker-image $(IMAGE) --name "$${ctx#kind-}" ;; \
+			*)      echo "  context $$ctx is not minikube or kind; push $(IMAGE) to a registry yourself" ;; \
+		esac; \
+	fi
 
 .PHONY: k8s-secret
 k8s-secret: ## Create or replace the GitHub secret in the cluster
